@@ -1,0 +1,6 @@
+ckpt/
+data/
+result/
+
+*.pyc
+*.npy
