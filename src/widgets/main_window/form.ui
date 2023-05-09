@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>720</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Label-Anything</string>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1280</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_FIle">
+    <property name="title">
+     <string>&amp;FIle</string>
+    </property>
+    <widget class="QMenu" name="menu_Open_Recent">
+     <property name="title">
+      <string>Open &amp;Recent</string>
+     </property>
+    </widget>
+    <addaction name="action_Open"/>
+    <addaction name="action_Open_Dir"/>
+    <addaction name="menu_Open_Recent"/>
+    <addaction name="separator"/>
+    <addaction name="action_Setup_Assist"/>
+    <addaction name="separator"/>
+    <addaction name="action_Next_Image"/>
+    <addaction name="action_Prev_Image"/>
+    <addaction name="separator"/>
+    <addaction name="action_Save"/>
+    <addaction name="action_Save_As"/>
+    <addaction name="action_Auto_Save"/>
+    <addaction name="separator"/>
+    <addaction name="action_Change_Output_Dir"/>
+    <addaction name="action_Save_With_Image"/>
+    <addaction name="separator"/>
+    <addaction name="action_Close"/>
+    <addaction name="action_Delete_File"/>
+    <addaction name="separator"/>
+    <addaction name="action_Quit"/>
+   </widget>
+   <widget class="QMenu" name="menu_Edit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+    <addaction name="action_Create_Points"/>
+    <addaction name="action_Create_Rectangle"/>
+    <addaction name="action_Create_Polygon"/>
+    <addaction name="action_Create_Line"/>
+    <addaction name="separator"/>
+    <addaction name="action_Finish_Prompt"/>
+    <addaction name="separator"/>
+    <addaction name="action_Edit_Object"/>
+    <addaction name="action_Edit_Label"/>
+    <addaction name="action_Delete_Object"/>
+    <addaction name="separator"/>
+    <addaction name="action_Undo"/>
+    <addaction name="action_Redo"/>
+    <addaction name="separator"/>
+    <addaction name="action_Manual_Mode"/>
+    <addaction name="action_SAM_Mode"/>
+   </widget>
+   <widget class="QMenu" name="menu_View">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="action_File_List"/>
+    <addaction name="action_Label_List"/>
+    <addaction name="separator"/>
+    <addaction name="action_Show_Objects"/>
+    <addaction name="separator"/>
+    <addaction name="action_Zoom_In"/>
+    <addaction name="action_Zoom_Out"/>
+    <addaction name="action_Original_Size"/>
+    <addaction name="separator"/>
+    <addaction name="action_Fit_Window"/>
+   </widget>
+   <widget class="QMenu" name="menu_Tools">
+    <property name="title">
+     <string>&amp;Tools</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="action_Tutorial"/>
+    <addaction name="action_About"/>
+   </widget>
+   <addaction name="menu_FIle"/>
+   <addaction name="menu_Edit"/>
+   <addaction name="menu_View"/>
+   <addaction name="menu_Tools"/>
+   <addaction name="menu_Help"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QDockWidget" name="dockWidget_File">
+   <property name="windowTitle">
+    <string>File List</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents"/>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_Label">
+   <property name="windowTitle">
+    <string>Label List</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_2"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>LeftToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action_Next_Image"/>
+   <addaction name="action_Prev_Image"/>
+   <addaction name="separator"/>
+   <addaction name="action_Save"/>
+   <addaction name="separator"/>
+   <addaction name="action_Create_Points"/>
+   <addaction name="action_Create_Rectangle"/>
+   <addaction name="action_Create_Polygon"/>
+   <addaction name="action_Create_Line"/>
+   <addaction name="separator"/>
+   <addaction name="action_Edit_Object"/>
+   <addaction name="separator"/>
+   <addaction name="action_Setup_Assist"/>
+   <addaction name="separator"/>
+   <addaction name="action_Manual_Mode"/>
+   <addaction name="action_SAM_Mode"/>
+   <addaction name="separator"/>
+   <addaction name="action_Fit_Window"/>
+  </widget>
+  <action name="action_Open_Dir">
+   <property name="text">
+    <string>Open &amp;Dir</string>
+   </property>
+  </action>
+  <action name="action_Setup_Assist">
+   <property name="text">
+    <string>Setup &amp;Assist</string>
+   </property>
+  </action>
+  <action name="action_Next_Image">
+   <property name="text">
+    <string>&amp;Next Image</string>
+   </property>
+  </action>
+  <action name="action_Prev_Image">
+   <property name="text">
+    <string>&amp;Prev Image</string>
+   </property>
+  </action>
+  <action name="action_Save">
+   <property name="text">
+    <string>&amp;Save</string>
+   </property>
+  </action>
+  <action name="action_Save_As">
+   <property name="text">
+    <string>&amp;Save As</string>
+   </property>
+  </action>
+  <action name="action_Auto_Save">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Auto Save</string>
+   </property>
+  </action>
+  <action name="action_Change_Output_Dir">
+   <property name="text">
+    <string>&amp;Change Output Dir</string>
+   </property>
+  </action>
+  <action name="action_Save_With_Image">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Save &amp;With Image</string>
+   </property>
+  </action>
+  <action name="action_Close">
+   <property name="text">
+    <string>&amp;Close</string>
+   </property>
+  </action>
+  <action name="action_Delete_File">
+   <property name="text">
+    <string>&amp;Delete File</string>
+   </property>
+  </action>
+  <action name="action_Open">
+   <property name="text">
+    <string>&amp;Open</string>
+   </property>
+  </action>
+  <action name="action_Quit">
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+  </action>
+  <action name="action_Create_Points">
+   <property name="text">
+    <string>Create &amp;Points</string>
+   </property>
+  </action>
+  <action name="action_Create_Rectangle">
+   <property name="text">
+    <string>Create &amp;Rectangle</string>
+   </property>
+  </action>
+  <action name="action_Create_Polygon">
+   <property name="text">
+    <string>Create &amp;Polygon</string>
+   </property>
+  </action>
+  <action name="action_Create_Line">
+   <property name="text">
+    <string>Create &amp;Line</string>
+   </property>
+  </action>
+  <action name="action_Edit_Object">
+   <property name="text">
+    <string>&amp;Edit Object</string>
+   </property>
+  </action>
+  <action name="action_Edit_Label">
+   <property name="text">
+    <string>Edit &amp;Label</string>
+   </property>
+  </action>
+  <action name="action_Delete_Object">
+   <property name="text">
+    <string>&amp;Delete Object</string>
+   </property>
+  </action>
+  <action name="action_Undo">
+   <property name="text">
+    <string>&amp;Undo</string>
+   </property>
+  </action>
+  <action name="action_Redo">
+   <property name="text">
+    <string>&amp;Redo</string>
+   </property>
+  </action>
+  <action name="action_Manual_Mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Manual Mode</string>
+   </property>
+  </action>
+  <action name="action_SAM_Mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;SAM Mode</string>
+   </property>
+  </action>
+  <action name="action_Tutorial">
+   <property name="text">
+    <string>&amp;Tutorial</string>
+   </property>
+  </action>
+  <action name="action_About">
+   <property name="text">
+    <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="action_File_List">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;File List</string>
+   </property>
+  </action>
+  <action name="action_Label_List">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Label List</string>
+   </property>
+  </action>
+  <action name="action_Show_Objects">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Show Objects</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Objects</string>
+   </property>
+  </action>
+  <action name="action_Zoom_In">
+   <property name="text">
+    <string>Zoom &amp;In</string>
+   </property>
+  </action>
+  <action name="action_Zoom_Out">
+   <property name="text">
+    <string>&amp;Zoom Out</string>
+   </property>
+  </action>
+  <action name="action_Original_Size">
+   <property name="text">
+    <string>&amp;Original Size</string>
+   </property>
+  </action>
+  <action name="action_Fit_Window">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Fit Window</string>
+   </property>
+  </action>
+  <action name="action_Finish_Prompt">
+   <property name="text">
+    <string>&amp;Finish Prompt</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
