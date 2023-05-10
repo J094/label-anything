@@ -25,47 +25,51 @@ class Ui_FileList(object):
             FileList.setObjectName(u"FileList")
         FileList.resize(300, 400)
         self.verticalLayout = QVBoxLayout(FileList)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.lineEdit_file_search = QLineEdit(FileList)
-        self.lineEdit_file_search.setObjectName(u"lineEdit_file_search")
-        self.lineEdit_file_search.setMinimumSize(QSize(0, 0))
+        self.horizontalLayout.setContentsMargins(-1, -1, -1, 5)
+        self.lineEdit_File_Search = QLineEdit(FileList)
+        self.lineEdit_File_Search.setObjectName(u"lineEdit_File_Search")
+        self.lineEdit_File_Search.setMinimumSize(QSize(0, 0))
 
-        self.horizontalLayout.addWidget(self.lineEdit_file_search)
+        self.horizontalLayout.addWidget(self.lineEdit_File_Search)
 
-        self.label_current = QLabel(FileList)
-        self.label_current.setObjectName(u"label_current")
-        self.label_current.setMinimumSize(QSize(30, 0))
-        self.label_current.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.label_Current = QLabel(FileList)
+        self.label_Current.setObjectName(u"label_Current")
+        self.label_Current.setMinimumSize(QSize(30, 0))
+        self.label_Current.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.horizontalLayout.addWidget(self.label_current)
+        self.horizontalLayout.addWidget(self.label_Current)
 
-        self.label_separator = QLabel(FileList)
-        self.label_separator.setObjectName(u"label_separator")
-        self.label_separator.setAlignment(Qt.AlignCenter)
+        self.label_Separator = QLabel(FileList)
+        self.label_Separator.setObjectName(u"label_Separator")
+        self.label_Separator.setAlignment(Qt.AlignCenter)
 
-        self.horizontalLayout.addWidget(self.label_separator)
+        self.horizontalLayout.addWidget(self.label_Separator)
 
-        self.label_total = QLabel(FileList)
-        self.label_total.setObjectName(u"label_total")
+        self.label_Total = QLabel(FileList)
+        self.label_Total.setObjectName(u"label_Total")
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_total.sizePolicy().hasHeightForWidth())
-        self.label_total.setSizePolicy(sizePolicy)
-        self.label_total.setMinimumSize(QSize(30, 0))
-        self.label_total.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
+        sizePolicy.setHeightForWidth(self.label_Total.sizePolicy().hasHeightForWidth())
+        self.label_Total.setSizePolicy(sizePolicy)
+        self.label_Total.setMinimumSize(QSize(30, 0))
+        self.label_Total.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
 
-        self.horizontalLayout.addWidget(self.label_total)
+        self.horizontalLayout.addWidget(self.label_Total)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
 
-        self.listWidget_files = QListWidget(FileList)
-        self.listWidget_files.setObjectName(u"listWidget_files")
+        self.listWidget_Files = QListWidget(FileList)
+        self.listWidget_Files.setObjectName(u"listWidget_Files")
 
-        self.verticalLayout.addWidget(self.listWidget_files)
+        self.verticalLayout.addWidget(self.listWidget_Files)
 
 
         self.retranslateUi(FileList)
@@ -75,8 +79,9 @@ class Ui_FileList(object):
 
     def retranslateUi(self, FileList):
         FileList.setWindowTitle(QCoreApplication.translate("FileList", u"FileList", None))
-        self.label_current.setText("")
-        self.label_separator.setText(QCoreApplication.translate("FileList", u"/", None))
-        self.label_total.setText("")
+        self.lineEdit_File_Search.setPlaceholderText(QCoreApplication.translate("FileList", u"Search Filename", None))
+        self.label_Current.setText("")
+        self.label_Separator.setText(QCoreApplication.translate("FileList", u"/", None))
+        self.label_Total.setText("")
     # retranslateUi
 

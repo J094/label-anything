@@ -130,8 +130,11 @@
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
+   <property name="allowedAreas">
+    <set>Qt::AllToolBarAreas</set>
+   </property>
    <attribute name="toolBarArea">
-    <enum>LeftToolBarArea</enum>
+    <enum>BottomToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
@@ -145,6 +148,8 @@
    <addaction name="action_Create_Rectangle"/>
    <addaction name="action_Create_Polygon"/>
    <addaction name="action_Create_Line"/>
+   <addaction name="separator"/>
+   <addaction name="action_Finish_Prompt"/>
    <addaction name="separator"/>
    <addaction name="action_Edit_Object"/>
    <addaction name="separator"/>
@@ -356,6 +361,9 @@
   </action>
   <action name="action_Fit_Window">
    <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
     <bool>true</bool>
    </property>
    <property name="text">

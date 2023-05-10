@@ -24,11 +24,13 @@ class Ui_LabelList(object):
             LabelList.setObjectName(u"LabelList")
         LabelList.resize(300, 400)
         self.verticalLayout = QVBoxLayout(LabelList)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.listWidget_labels = QListWidget(LabelList)
-        self.listWidget_labels.setObjectName(u"listWidget_labels")
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.listWidget_Labels = QListWidget(LabelList)
+        self.listWidget_Labels.setObjectName(u"listWidget_Labels")
 
-        self.verticalLayout.addWidget(self.listWidget_labels)
+        self.verticalLayout.addWidget(self.listWidget_Labels)
 
 
         self.retranslateUi(LabelList)

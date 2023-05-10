@@ -14,20 +14,44 @@
    <string>FileList</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>5</number>
+     </property>
      <item>
-      <widget class="QLineEdit" name="lineEdit_file_search">
+      <widget class="QLineEdit" name="lineEdit_File_Search">
        <property name="minimumSize">
         <size>
          <width>0</width>
          <height>0</height>
         </size>
        </property>
+       <property name="placeholderText">
+        <string>Search Filename</string>
+       </property>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_current">
+      <widget class="QLabel" name="label_Current">
        <property name="minimumSize">
         <size>
          <width>30</width>
@@ -43,7 +67,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_separator">
+      <widget class="QLabel" name="label_Separator">
        <property name="text">
         <string>/</string>
        </property>
@@ -53,7 +77,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_total">
+      <widget class="QLabel" name="label_Total">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -77,7 +101,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QListWidget" name="listWidget_files"/>
+    <widget class="QListWidget" name="listWidget_Files"/>
    </item>
   </layout>
  </widget>

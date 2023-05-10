@@ -1,19 +1,44 @@
-# This Python file uses the following encoding: utf-8
+# -*- coding: utf-8 -*-
+# J094
+# 2023.05.10
+import os
 import sys
-
-from PySide6.QtWidgets import QApplication, QWidget
+sys.path.append(os.path.realpath("."))
 
 # Important:
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
-from ui_form import Ui_FileList
+from src.widgets.file_list.ui_form import Ui_FileList
+
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtWidgets import QApplication, QWidget, QListWidgetItem
+
 
 class FileList(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
+        self.main_window = main_window
         self.ui = Ui_FileList()
         self.ui.setupUi(self)
+        
+        self.ui.listWidget_Files.clicked.connect(self.slot_clicked)
+        
+    def update_list(self):
+        self.ui.listWidget_Files.clear()
+        for file_path in self.main_window.file_paths:
+            _, file_name = os.path.split(file_path)
+            item = QListWidgetItem()
+            item.setCheckState(Qt.CheckState.Unchecked)
+            item.setSizeHint(QSize(200, 20))
+            item.setText(file_name)
+            self.ui.listWidget_Files.addItem(item)
+        self.ui.label_Total.setText('{}'.format(len(self.main_window.file_paths)))
+    
+    def slot_clicked(self):
+        index = self.ui.listWidget_Files.currentRow()
+        self.main_window.file_path = self.main_window.file_paths[index]
+        self.main_window.load_file()
 
 
 if __name__ == "__main__":
