@@ -8,11 +8,14 @@ from PySide6.QtWidgets import QGraphicsPixmapItem
 from PySide6.QtGui import QColor, QPixmap, QPainter
 
 
+DEFAULT_MASK_COLOR = QColor(30, 144, 255, 128)
+DEFAULT_SELECT_MASK_COLOR = QColor(30, 144, 255, 155)
+
 class Prompt(QGraphicsPixmapItem):
-    
-    DEFAULT_MASK_COLOR = QColor(30, 144, 255, 128)
-    DEFAULT_SELECT_MASK_COLOR = QColor(30, 144, 255, 155)
-    
+
+    mask_color = DEFAULT_MASK_COLOR
+    select_mask_color = DEFAULT_SELECT_MASK_COLOR
+
     def __init__(self, parent=None, scene_rect=None):
         super(Prompt, self).__init__(parent)
         

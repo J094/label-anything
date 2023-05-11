@@ -92,6 +92,7 @@ class Canvas(QGraphicsView):
         point = event.position()
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             # parent() returns MainWindow
+            # self.parent()
             self.parent().ui.action_Fit_Window.setChecked(False)
             self.zoom_mode = Canvas.ZoomMode.MANUAL
             if angle_y > 0:
@@ -114,7 +115,7 @@ class CanvasScene(QGraphicsScene):
         self.shape_items = []
         self.prompt_item = None
         self.prompt_items = []
-        self.tmp_item = None
+        self.tmp_shape_item = None
         self.guide_line_x = None
         self.guide_line_y = None
         self.draw_mode = Canvas.DrawMode.MANUAL
@@ -141,10 +142,17 @@ class CanvasScene(QGraphicsScene):
         self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.views()[0].zoom_fit_window()
         
-    def finish_draw_manual(self):
-        print(self.shape_item.points)
+    def reset_shape_item(self):
+        if self.shape_item in self.items():
+            self.removeItem(self.shape_item)
+        if self.tmp_shape_item in self.items():
+            self.removeItem(self.tmp_shape_item)
         self.shape_item = None
-        self.tmp_item = None
+        self.tmp_shape_item = None
+        
+    def finish_draw_manual(self):
+        self.shape_items.append(self.shape_item)
+        self.reset_shape_item()
         pass
     
     def finish_draw_sam(self):
@@ -152,9 +160,19 @@ class CanvasScene(QGraphicsScene):
     
     def update(self):
         #TODO: Add items here
+        # Saved shape items
+        for shape_item in self.shape_items:
+            if (shape_item is not None
+                and shape_item not in self.items()):
+                self.addItem(shape_item)
+        # Current shape item
         if (self.shape_item is not None
             and self.shape_item not in self.items()):
             self.addItem(self.shape_item)
+        # Current temperary shape item
+        if (self.tmp_shape_item is not None
+            and self.tmp_shape_item not in self.items()):
+            self.addItem(self.tmp_shape_item)
         
         super().update()
         
@@ -166,7 +184,6 @@ class CanvasScene(QGraphicsScene):
         if scene_pos.y() > self.height(): scene_pos.setY(self.height())
         
         if event.button() == Qt.MouseButton.LeftButton:
-            #TODO: Left Click -> Draw Point
             if self.status_mode == Canvas.StatusMode.CREATE:
                 if self.draw_mode == Canvas.DrawMode.MANUAL:
                     if self.shape_item is None:
@@ -175,20 +192,45 @@ class CanvasScene(QGraphicsScene):
                                                 shape_type=self.shape_type)
                         self.shape_item.add_point(point=scene_pos)
                         self.shape_item.update_pixmap()
-                        self.tmp_item = Shape(scene_rect=self.scene_rect, 
+                        self.tmp_shape_item = Shape(scene_rect=self.scene_rect, 
                                               shape_type=self.shape_type, 
                                               is_tmp=True)
-                        self.tmp_item.add_point(point=scene_pos)
-                        self.tmp_item.add_point(point=scene_pos)
-                        self.tmp_item.update_pixmap()
+                        self.tmp_shape_item.add_point(point=scene_pos)
+                        self.tmp_shape_item.add_point(point=scene_pos)
+                        self.tmp_shape_item.update_pixmap()
                         if (self.shape_type == Shape.ShapeType.POINTS
                             and event.modifiers() == Qt.KeyboardModifier.ControlModifier):
                             self.finish_draw_manual()
                         self.update()
                     else:
                         # Add points to shape item
-                        pass
+                        if self.shape_type == Shape.ShapeType.POINTS:
+                            self.shape_item.add_point(self.tmp_shape_item.points[1])
+                            self.shape_item.update_pixmap()
+                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                                self.finish_draw_manual()
+                        elif self.shape_type == Shape.ShapeType.RECTANGLE:
+                            assert len(self.shape_item.points) == 1
+                            self.shape_item.add_point(self.tmp_shape_item.points[1])
+                            self.shape_item.update_pixmap()
+                            self.finish_draw_manual()
+                        elif self.shape_type == Shape.ShapeType.POLYGON:
+                            self.shape_item.add_point(self.tmp_shape_item.points[1])
+                            self.shape_item.update_pixmap()
+                            self.tmp_shape_item.points[0] = self.shape_item.points[-1]
+                            self.tmp_shape_item.update_pixmap()
+                            if self.shape_item.closed:
+                                self.finish_draw_manual()
+                        elif self.shape_type == Shape.ShapeType.LINES:
+                            self.shape_item.add_point(self.tmp_shape_item.points[1])
+                            self.shape_item.update_pixmap()
+                            self.tmp_shape_item.points[0] = self.shape_item.points[-1]
+                            self.tmp_shape_item.update_pixmap()
+                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                                self.finish_draw_manual()
+                        self.update()
                 elif self.draw_mode == Canvas.DrawMode.SAM:
+                    #TODO: SAM mode
                     if self.shape_item is None:
                         # Create a new shape
                         pass
@@ -196,6 +238,7 @@ class CanvasScene(QGraphicsScene):
                         # Add points to shape item
                         pass
             elif self.status_mode == Canvas.StatusMode.EDIT:
+                #TODO: EDIT mode
                 pass
         elif (event.button() == Qt.MouseButton.RightButton
               and self.status_mode == Canvas.StatusMode.EDIT):
@@ -228,4 +271,27 @@ class CanvasScene(QGraphicsScene):
                 int(scene_pos.x()),
                 int(scene_pos.y()),
             ))
+            
+        if (self.shape_item is not None
+            and self.tmp_shape_item is not None):
+            if self.shape_type == Shape.ShapeType.POINTS:
+                self.tmp_shape_item.points[0] = scene_pos
+                self.tmp_shape_item.points[1] = scene_pos
+            else:
+                # RECTANGLE, POLYGON, LINES
+                self.tmp_shape_item.points[0] = self.shape_item.points[-1]
+                self.tmp_shape_item.points[1] = scene_pos
+            self.tmp_shape_item.update_pixmap()
+        self.update()
         return super().mouseMoveEvent(event)
+
+    def keyPressEvent(self, event):
+        modifiers = event.modifiers()
+        key = event.key()
+        if self.status_mode == Canvas.StatusMode.CREATE:
+            if (key == Qt.Key.Key_Escape 
+                and self.shape_item is not None
+                and self.tmp_shape_item is not None):
+                self.reset_shape_item()
+                self.update()
+        pass
