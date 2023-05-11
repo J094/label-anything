@@ -27,22 +27,25 @@ class Shape(QGraphicsPixmapItem):
     DEFAULT_VERTEX_FILL_COLOR = QColor(0, 255, 0, 255)
     DEFAULT_HVERTEX_FILL_COLOR = QColor(255, 255, 255, 255)
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, scene_rect=None, shape_type=None, is_tmp=False):
         super(Shape, self).__init__(parent)
-        
+
+        self.scene_rect = scene_rect
+        self.shape_type = shape_type
+        self.is_tmp = is_tmp
         self.points = []
         self.points_flag = []
-        self.shape_type = None
         self.point_type = None
+        self.closed = False
         
     def add_point(self, point, point_flag=True):
         self.points.append(point)
         self.points_flag.append(point_flag)
     
     def update_pixmap(self):
-        # shape_pixmap = QPixmap()
-        # painter = QPainter()
-        # painter.begin(shape_pixmap)
-        # painter.end()
-        # self.setPixmap(shape_pixmap)
-        pass
+        shape_pixmap = QPixmap(self.scene_rect.width(), self.scene_rect.height())
+        shape_pixmap.fill(QColor(255, 0, 0, 125))
+        painter = QPainter()
+        painter.begin(shape_pixmap)
+        painter.end()
+        self.setPixmap(shape_pixmap)

@@ -59,7 +59,7 @@ class Canvas(QGraphicsView):
     
     def zoom_fit_window(self):
         # scene() returns CanvasScene
-        # print(self.sceneRect())
+        # self.scene()
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
     
     def zoom_original(self):
@@ -90,8 +90,6 @@ class Canvas(QGraphicsView):
         angle = event.angleDelta()
         angle_y = angle.y()
         point = event.position()
-        # print("angle_y:", angle_y)
-        # print("point:", point)
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             # parent() returns MainWindow
             self.parent().ui.action_Fit_Window.setChecked(False)
@@ -104,19 +102,19 @@ class Canvas(QGraphicsView):
             # Do not effect scrollbar
             return super().wheelEvent(event)
 
-        
 
 class CanvasScene(QGraphicsScene):
     def __init__(self, parent=None, main_window=None):
         super(CanvasScene, self).__init__(parent)
         self.main_window = main_window
 
+        self.scene_rect = None
         self.image_data = None
         self.shape_item = None
         self.shape_items = []
         self.prompt_item = None
         self.prompt_items = []
-        self.current_line = [None, None]
+        self.tmp_item = None
         self.guide_line_x = None
         self.guide_line_y = None
         self.draw_mode = Canvas.DrawMode.MANUAL
@@ -137,18 +135,72 @@ class CanvasScene(QGraphicsScene):
         # Fix scene size
         fix_width = image_pixmap.width()
         fix_height = image_pixmap.height()
-        self.setSceneRect(0, 0, fix_width, fix_height)
+        self.scene_rect = QRectF(0, 0, fix_width, fix_height)
+        self.setSceneRect(self.scene_rect)
         # Fit window
         self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.views()[0].zoom_fit_window()
         
-    def finish_draw(self):
+    def finish_draw_manual(self):
         print(self.shape_item.points)
         self.shape_item = None
-        self.current_line = [None, None]
+        self.tmp_item = None
         pass
+    
+    def finish_draw_sam(self):
+        pass
+    
+    def update(self):
+        #TODO: Add items here
+        if (self.shape_item is not None
+            and self.shape_item not in self.items()):
+            self.addItem(self.shape_item)
+        
+        super().update()
         
     def mousePressEvent(self, event):
+        scene_pos = event.scenePos()
+        if scene_pos.x() < 0: scene_pos.setX(0)
+        if scene_pos.x() > self.width(): scene_pos.setX(self.width())
+        if scene_pos.y() < 0: scene_pos.setY(0)
+        if scene_pos.y() > self.height(): scene_pos.setY(self.height())
+        
+        if event.button() == Qt.MouseButton.LeftButton:
+            #TODO: Left Click -> Draw Point
+            if self.status_mode == Canvas.StatusMode.CREATE:
+                if self.draw_mode == Canvas.DrawMode.MANUAL:
+                    if self.shape_item is None:
+                        # Create a new shape
+                        self.shape_item = Shape(scene_rect=self.scene_rect, 
+                                                shape_type=self.shape_type)
+                        self.shape_item.add_point(point=scene_pos)
+                        self.shape_item.update_pixmap()
+                        self.tmp_item = Shape(scene_rect=self.scene_rect, 
+                                              shape_type=self.shape_type, 
+                                              is_tmp=True)
+                        self.tmp_item.add_point(point=scene_pos)
+                        self.tmp_item.add_point(point=scene_pos)
+                        self.tmp_item.update_pixmap()
+                        if (self.shape_type == Shape.ShapeType.POINTS
+                            and event.modifiers() == Qt.KeyboardModifier.ControlModifier):
+                            self.finish_draw_manual()
+                        self.update()
+                    else:
+                        # Add points to shape item
+                        pass
+                elif self.draw_mode == Canvas.DrawMode.SAM:
+                    if self.shape_item is None:
+                        # Create a new shape
+                        pass
+                    else:
+                        # Add points to shape item
+                        pass
+            elif self.status_mode == Canvas.StatusMode.EDIT:
+                pass
+        elif (event.button() == Qt.MouseButton.RightButton
+              and self.status_mode == Canvas.StatusMode.EDIT):
+            #TODO: Right Click -> Open Menu
+            pass
         return super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
@@ -157,7 +209,6 @@ class CanvasScene(QGraphicsScene):
         if scene_pos.x() > self.width(): scene_pos.setX(self.width())
         if scene_pos.y() < 0: scene_pos.setY(0)
         if scene_pos.y() > self.height(): scene_pos.setY(self.height())
-        # print(scene_pos)
 
         if self.guide_line_x is not None and self.guide_line_x in self.items():
             self.removeItem(self.guide_line_x)
