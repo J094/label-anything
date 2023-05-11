@@ -16,7 +16,9 @@ from src.widgets.main_window.ui_form import Ui_MainWindow
 
 from enum import Enum
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QFileDialog, QLabel,
+)
 from PySide6.QtGui import QImageReader, QImage
 
 
@@ -58,6 +60,9 @@ class MainWindow(QMainWindow):
         self.ui.action_Next_Image.triggered.connect(self.slot_next_image)
         self.ui.action_Prev_Image.triggered.connect(self.slot_prev_image)
         self.ui.action_Fit_Window.triggered.connect(self.slot_fit_window)
+        self.ui.action_Zoom_In.triggered.connect(self.slot_zoom_in)
+        self.ui.action_Zoom_Out.triggered.connect(self.slot_zoom_out)
+        self.ui.action_Original_Size.triggered.connect(self.slot_original_size)
         
     def reset_status(self):
         pass
@@ -107,7 +112,7 @@ class MainWindow(QMainWindow):
         file_dialog.setWindowFilePath(path)
         if file_dialog.exec():
             file_path = file_dialog.selectedFiles()[0]
-            if file_path:
+            if file_path is not None:
                 self.file_path = file_path
                 print("Open:", self.file_path)
                 self.load_file()
@@ -119,7 +124,7 @@ class MainWindow(QMainWindow):
             "Choose Image Directory",
             path,
         )
-        if file_dir:
+        if file_dir is not None:
             self.file_dir = file_dir
             print("Open:", self.file_dir)
             self.load_dir()
@@ -149,7 +154,22 @@ class MainWindow(QMainWindow):
             self.graphicsView_canvas.zoom_fit_window()
         else:
             self.graphicsView_canvas.zoom_mode = Canvas.ZoomMode.MANUAL
-            self.graphicsView_canvas.zoom(1)
+            self.graphicsView_canvas.zoom_original()
+            
+    def slot_zoom_in(self):
+        self.ui.action_Fit_Window.setChecked(False)
+        self.graphicsView_canvas.zoom_mode = Canvas.ZoomMode.MANUAL
+        self.graphicsView_canvas.zoom_in()
+        
+    def slot_zoom_out(self):
+        self.ui.action_Fit_Window.setChecked(False)
+        self.graphicsView_canvas.zoom_mode = Canvas.ZoomMode.MANUAL
+        self.graphicsView_canvas.zoom_out()
+        
+    def slot_original_size(self):
+        self.ui.action_Fit_Window.setChecked(False)
+        self.graphicsView_canvas.zoom_mode = Canvas.ZoomMode.MANUAL
+        self.graphicsView_canvas.zoom_original()
 
 
 if __name__ == "__main__":

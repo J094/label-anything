@@ -16,8 +16,9 @@ from PIL import Image, ImageQt
 
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtWidgets import (
-    QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
+    QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsLineItem,
 )
+from PySide6.QtGui import QPainter
 
 
 class Canvas(QGraphicsView):
@@ -38,9 +39,12 @@ class Canvas(QGraphicsView):
         super(Canvas, self).__init__(parent)
         
         self.zoom_mode = Canvas.ZoomMode.FIT_WINDOW
-        self.factor = 1.2
+        self.zoom_factor = 1.2
         
         self.setMouseTracking(True)
+        self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        self.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True)
+        self.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontSavePainterState, True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         
@@ -48,33 +52,57 @@ class Canvas(QGraphicsView):
         pass
         
     def zoom_in(self):
-        self.zoom(self.factor)
+        self.zoom(zoom_factor=self.zoom_factor)
     
     def zoom_out(self):
-        self.zoom(1/self.factor)
+        self.zoom(zoom_factor=1/self.zoom_factor)
     
     def zoom_fit_window(self):
-        self.fitInView(0, 0, self.scene().width(), self.scene().height(), 
-                       Qt.AspectRatioMode.KeepAspectRatio)
+        # scene() returns CanvasScene
+        # print(self.sceneRect())
+        self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
     
-    def zoom(self, factor, point=None):
-        mouse_old = self.mapToScene(point) if point is not None else None
+    def zoom_original(self):
+        zoom_facor = 1/self.transform().m11()
+        self.zoom(zoom_factor=zoom_facor)
+    
+    def zoom(self, zoom_factor, point=None):
+        mouse_old = self.mapToScene(point.toPoint()) if point else None
 
-        pix_widget = self.transform().scale(factor, factor).mapRect(QRectF(0, 0, 1, 1)).width()
-        if pix_widget > 3 or pix_widget < 0.01:
+        # Limit zoom ranges: 0.1 ~ 10
+        scaled_width = self.transform().scale(zoom_factor, zoom_factor).mapRect(QRectF(0, 0, 1, 1)).width()
+        if scaled_width > 10 or scaled_width < 0.1:
             return
 
-        self.scale(factor, factor)
+        self.scale(zoom_factor, zoom_factor)
         if point is not None:
-            mouse_now = self.mapToScene(point)
+            mouse_now = self.mapToScene(point.toPoint())
             center_now = self.mapToScene(self.viewport().width() // 2, self.viewport().height() // 2)
             center_new = mouse_old - mouse_now + center_now
             self.centerOn(center_new)
     
-    def paintEvent(self, event):
+    def resizeEvent(self, event):
         if self.zoom_mode == Canvas.ZoomMode.FIT_WINDOW:
             self.zoom_fit_window()
-        return super().paintEvent(event)
+        return super().resizeEvent(event)
+    
+    def wheelEvent(self, event):
+        angle = event.angleDelta()
+        angle_y = angle.y()
+        point = event.position()
+        # print("angle_y:", angle_y)
+        # print("point:", point)
+        if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            # parent() returns MainWindow
+            self.parent().ui.action_Fit_Window.setChecked(False)
+            self.zoom_mode = Canvas.ZoomMode.MANUAL
+            if angle_y > 0:
+                self.zoom(zoom_factor=self.zoom_factor, point=point)
+            elif angle_y < 0:
+                self.zoom(zoom_factor=1/self.zoom_factor, point=point)
+        else:
+            # Do not effect scrollbar
+            return super().wheelEvent(event)
 
         
 
@@ -83,22 +111,70 @@ class CanvasScene(QGraphicsScene):
         super(CanvasScene, self).__init__(parent)
         self.main_window = main_window
 
-        self.image_pil = None
-        self.image_pixmap = None
+        self.image_data = None
         self.shape_item = None
         self.shape_items = []
         self.prompt_item = None
         self.prompt_items = []
-        self.status_mode = None
+        self.current_line = [None, None]
+        self.guide_line_x = None
+        self.guide_line_y = None
+        self.draw_mode = Canvas.DrawMode.MANUAL
+        self.status_mode = Canvas.StatusMode.CREATE
+        self.shape_type = Shape.ShapeType.POINTS
         
     def load_image(self, image_path):
         self.clear()
-        
-        self.image_pil = Image.open(image_path)
-        self.image_pixmap = ImageQt.toqpixmap(self.image_pil)
-        
+        # views() returns all views of this scene
+        # self.views()
+        image_pil = Image.open(image_path)
+        image_pixmap = ImageQt.toqpixmap(image_pil)
+        self.image_data = np.array(image_pil)
         self.image_item = QGraphicsPixmapItem()
         self.image_item.setZValue(0)
-        self.image_item.setPixmap(self.image_pixmap)
-        
+        self.image_item.setPixmap(image_pixmap)
         self.addItem(self.image_item)
+        # Fix scene size
+        fix_width = image_pixmap.width()
+        fix_height = image_pixmap.height()
+        self.setSceneRect(0, 0, fix_width, fix_height)
+        # Fit window
+        self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
+        self.views()[0].zoom_fit_window()
+        
+    def finish_draw(self):
+        print(self.shape_item.points)
+        self.shape_item = None
+        self.current_line = [None, None]
+        pass
+        
+    def mousePressEvent(self, event):
+        return super().mousePressEvent(event)
+    
+    def mouseMoveEvent(self, event):
+        scene_pos = event.scenePos()
+        if scene_pos.x() < 0: scene_pos.setX(0)
+        if scene_pos.x() > self.width(): scene_pos.setX(self.width())
+        if scene_pos.y() < 0: scene_pos.setY(0)
+        if scene_pos.y() > self.height(): scene_pos.setY(self.height())
+        # print(scene_pos)
+
+        if self.guide_line_x is not None and self.guide_line_x in self.items():
+            self.removeItem(self.guide_line_x)
+            self.guide_line_x = None
+        if self.guide_line_y is not None and self.guide_line_y in self.items():
+            self.removeItem(self.guide_line_y)
+            self.guide_line_y = None
+        self.guide_line_x = QGraphicsLineItem(0, scene_pos.y(), self.width(), scene_pos.y())
+        self.guide_line_x.setZValue(1)
+        self.addItem(self.guide_line_x)
+        self.guide_line_y = QGraphicsLineItem(scene_pos.x(), 0, scene_pos.x(), self.height())
+        self.guide_line_y.setZValue(1)
+        self.addItem(self.guide_line_y)
+        
+        if self.image_data is not None:
+            self.main_window.statusBar().showMessage("Current Pose: ({}, {})".format(
+                int(scene_pos.x()),
+                int(scene_pos.y()),
+            ))
+        return super().mouseMoveEvent(event)
