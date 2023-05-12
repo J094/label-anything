@@ -3,24 +3,23 @@
 # 2023.05.10
 import os
 import sys
-
-import PySide6.QtGui
 sys.path.append(os.path.realpath("."))
 
-from src.widgets.objects.shape import Shape
-from src.widgets.objects.prompt import Prompt
+from src.widgets.objects.guide_line import GuideLine
+from src.widgets.objects.object import Object
 
-import math
+import time
 import numpy as np
 from enum import Enum
 from PIL import Image, ImageQt
 
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtWidgets import (
-    QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsLineItem,
-    QApplication,
+    QApplication, QGraphicsView, QGraphicsScene, 
+    QGraphicsPixmapItem, QGraphicsLineItem, QGraphicsEllipseItem,
+    QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsPathItem
 )
-from PySide6.QtGui import QPainter
+from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath
 
 
 class Canvas(QGraphicsView):
@@ -50,9 +49,6 @@ class Canvas(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         
-    def reset_status(self):
-        pass
-        
     def zoom_in(self):
         self.zoom(zoom_factor=self.zoom_factor)
     
@@ -79,6 +75,7 @@ class Canvas(QGraphicsView):
             return
 
         self.scale(zoom_factor, zoom_factor)
+        Object.scale_factor = Object.scale_factor * zoom_factor
         if point is not None:
             mouse_now = self.mapToScene(point.toPoint())
             center_now = self.mapToScene(
@@ -106,7 +103,7 @@ class Canvas(QGraphicsView):
             elif angle_y < 0:
                 self.zoom(zoom_factor=1/self.zoom_factor, point=point)
         else:
-            # Do not effect scrollbar
+            # Zoom should not effect scrollbar
             return super().wheelEvent(event)
 
 
@@ -117,23 +114,18 @@ class CanvasScene(QGraphicsScene):
 
         self.scene_rect = None
         self.image_data = None
-        self.shape_item = None
-        self.shape_items = []
-        self.prompt_item = None
-        self.prompt_items = []
-        self.tmp_shape_item = None
         self.guide_line_x = None
         self.guide_line_y = None
+        self.temp_line = None
+        self.object = None
+        self.objects = []
         self.draw_mode = Canvas.DrawMode.MANUAL
         self.status_mode = Canvas.StatusMode.CREATE
-        self.shape_type = Shape.ShapeType.RECTANGLE
-        # Snap last point with first point when draw POLYGON
-        self.snapping = True
-        # Snap threshold is 5 pixels
-        self.close_eplison = 5
+        self.object_type = Object.ObjectType.RECTANGLE
         
     def load_image(self, image_path):
         self.clear()
+        self.reset_status()
         # views() returns all views of this scene
         # self.views()
         image_pil = Image.open(image_path)
@@ -152,59 +144,12 @@ class CanvasScene(QGraphicsScene):
         self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.views()[0].zoom_fit_window()
         
-    def reset_shape_item(self):
-        if self.shape_item in self.items():
-            self.shape_item.highlight_clear()
-            self.shape_item.update_pixmap()
-            self.removeItem(self.shape_item)
-        if self.tmp_shape_item in self.items():
-            self.shape_item.highlight_clear()
-            self.shape_item.update_pixmap()
-            self.removeItem(self.tmp_shape_item)
-        self.shape_item = None
-        self.tmp_shape_item = None
-        
-    def can_close_shape(self):
-        if (self.status_mode == Canvas.StatusMode.CREATE
-            and self.shape_item is not None
-            and len(self.shape_item.points) >= 3):
-            # At least 3 points
-            return True
-        else:
-            return False
-        
-    def close_enough(self, point_1, point_2):
-        point_delta = point_1 - point_2
-        distance = math.sqrt(
-            point_delta.x() * point_delta.x() + point_delta.y() * point_delta.y()
-        )
-        return distance < self.close_eplison
-        
-    def finish_draw_manual(self):
-        self.shape_items.append(self.shape_item)
-        self.reset_shape_item()
-        pass
-    
-    def finish_draw_sam(self):
-        pass
-    
-    def update(self):
-        #TODO: Add items here
-        # Saved shape items
-        for shape_item in self.shape_items:
-            if (shape_item is not None
-                and shape_item not in self.items()):
-                self.addItem(shape_item)
-        # Current shape item
-        if (self.shape_item is not None
-            and self.shape_item not in self.items()):
-            self.addItem(self.shape_item)
-        # Current temperary shape item
-        if (self.tmp_shape_item is not None
-            and self.tmp_shape_item not in self.items()):
-            self.addItem(self.tmp_shape_item)
-        
-        super().update()
+    def reset_status(self):
+        self.guide_line_x = None
+        self.guide_line_y = None
+        self.temp_line = None
+        self.object = None
+        self.objects = []
         
     def mousePressEvent(self, event):
         scene_pos = event.scenePos()
@@ -214,62 +159,53 @@ class CanvasScene(QGraphicsScene):
         if scene_pos.y() > self.height(): scene_pos.setY(self.height())
         
         if event.button() == Qt.MouseButton.LeftButton:
+            #TODO: Left Click -> Draw Point
             if self.status_mode == Canvas.StatusMode.CREATE:
+                #TODO: CREATE mode
                 if self.draw_mode == Canvas.DrawMode.MANUAL:
-                    if self.shape_item is None:
-                        # Create a new shape
-                        self.shape_item = Shape(scene_rect=self.scene_rect, 
-                                                shape_type=self.shape_type)
-                        self.shape_item.add_point(point=scene_pos)
-                        self.shape_item.update_pixmap()
-                        self.tmp_shape_item = Shape(scene_rect=self.scene_rect, 
-                                              shape_type=self.shape_type)
-                        self.tmp_shape_item.add_point(point=scene_pos)
-                        self.tmp_shape_item.add_point(point=scene_pos)
-                        self.tmp_shape_item.update_pixmap()
-                        if (self.shape_type == Shape.ShapeType.POINTS
-                            and event.modifiers() == Qt.KeyboardModifier.ControlModifier):
-                            self.finish_draw_manual()
-                        self.update()
-                    else:
-                        # Add points to shape item
-                        if self.shape_type == Shape.ShapeType.POINTS:
-                            self.shape_item.add_point(self.tmp_shape_item.points[1])
-                            self.shape_item.update_pixmap()
-                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                                self.finish_draw_manual()
-                        elif self.shape_type == Shape.ShapeType.RECTANGLE:
-                            assert len(self.shape_item.points) == 1
-                            self.shape_item.add_point(self.tmp_shape_item.points[1])
-                            self.shape_item.update_pixmap()
-                            self.finish_draw_manual()
-                        elif self.shape_type == Shape.ShapeType.POLYGON:
-                            self.shape_item.add_point(self.tmp_shape_item.points[1])
-                            self.shape_item.update_pixmap()
-                            self.tmp_shape_item.points[0] = self.shape_item.points[-1]
-                            self.tmp_shape_item.update_pixmap()
-                            if self.shape_item.closed:
-                                self.shape_item.points.pop()
-                                self.finish_draw_manual()
-                        elif self.shape_type == Shape.ShapeType.LINES:
-                            self.shape_item.add_point(self.tmp_shape_item.points[1])
-                            self.shape_item.update_pixmap()
-                            self.tmp_shape_item.points[0] = self.shape_item.points[-1]
-                            self.tmp_shape_item.update_pixmap()
-                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                                self.finish_draw_manual()
-                        self.update()
+                    point_size = max(3.0, 6.0 / Object.scale_factor)
+                    line_width = max(1.0, 2.0 / Object.scale_factor)
+                    # line_item = QGraphicsLineItem(0, 0, scene_pos.x(), scene_pos.y())
+                    # line_item_pen = QPen(Qt.GlobalColor.green)
+                    # line_item_pen.setWidthF(line_width)
+                    # line_item.setPen(line_item_pen)
+                    # self.addItem(line_item)
+                    # rect_item = QGraphicsRectItem(0, 0, scene_pos.x(), scene_pos.y())
+                    # rect_item_pen = QPen(Qt.GlobalColor.green)
+                    # rect_item_pen.setWidthF(line_width)
+                    # rect_item.setPen(rect_item_pen)
+                    # self.addItem(rect_item)
+                    # ellipse_item = QGraphicsEllipseItem(scene_pos.x()-point_size/2, 
+                    #                                     scene_pos.y()-point_size/2, 
+                    #                                     point_size, 
+                    #                                     point_size)
+                    # ellipse_item.setPen(QPen(Qt.GlobalColor.green))
+                    # ellipse_item.setBrush(QBrush(Qt.GlobalColor.red))
+                    # self.addItem(ellipse_item)
+                    path_item = QGraphicsPathItem()
+                    path_item_pen = QPen(Qt.GlobalColor.green)
+                    path_item_pen.setWidthF(line_width)
+                    path_item.setPen(path_item_pen)
+                    path_item_brush = QBrush(Qt.GlobalColor.green)
+                    path_item.setBrush(path_item_brush)
+                    path_item_path = QPainterPath()
+                    path_item_path.moveTo(0, 0)
+                    path_item_path.lineTo(scene_pos.x(), scene_pos.y())
+                    path_item_path.addEllipse(scene_pos.x()-point_size/2, 
+                                              scene_pos.y()-point_size/2, 
+                                              point_size, 
+                                              point_size)
+                    path_item.setPath(path_item_path)
+                    self.addItem(path_item)
+                    pass
                 elif self.draw_mode == Canvas.DrawMode.SAM:
-                    #TODO: SAM mode
-                    if self.shape_item is None:
-                        # Create a new shape
-                        pass
-                    else:
-                        # Add points to shape item
-                        pass
+                    pass
             elif self.status_mode == Canvas.StatusMode.EDIT:
                 #TODO: EDIT mode
-                pass
+                if self.draw_mode == Canvas.DrawMode.MANUAL:
+                    pass
+                elif self.draw_mode == Canvas.DrawMode.SAM:
+                    pass
         elif (event.button() == Qt.MouseButton.RightButton
               and self.status_mode == Canvas.StatusMode.EDIT):
             #TODO: Right Click -> Open Menu
@@ -293,63 +229,40 @@ class CanvasScene(QGraphicsScene):
             inside_scene = False
 
         # Cross shows only inside scene
+        # start = time.perf_counter()
         if self.status_mode == Canvas.StatusMode.CREATE and inside_scene:
             QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
         else:
             QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
 
-        if self.guide_line_x is not None and self.guide_line_x in self.items():
-            self.removeItem(self.guide_line_x)
-            self.guide_line_x = None
-        if self.guide_line_y is not None and self.guide_line_y in self.items():
-            self.removeItem(self.guide_line_y)
-            self.guide_line_y = None
-        if self.shape_type == Shape.ShapeType.RECTANGLE:
-            self.guide_line_x = QGraphicsLineItem(0, scene_pos.y(), self.width(), scene_pos.y())
-            self.guide_line_x.setZValue(1)
-            self.addItem(self.guide_line_x)
-            self.guide_line_y = QGraphicsLineItem(scene_pos.x(), 0, scene_pos.x(), self.height())
-            self.guide_line_y.setZValue(1)
-            self.addItem(self.guide_line_y)
+        if self.object_type == Object.ObjectType.RECTANGLE:
+            if self.guide_line_x is None:
+                self.guide_line_x = GuideLine(0, scene_pos.y(), self.width(), scene_pos.y())
+                self.addItem(self.guide_line_x)
+            else:
+                self.guide_line_x.setLine(0, scene_pos.y(), self.width(), scene_pos.y())
+            if self.guide_line_y is None:
+                self.guide_line_y = GuideLine(scene_pos.x(), 0, scene_pos.x(), self.height())
+                self.addItem(self.guide_line_y)
+            else:
+                self.guide_line_y.setLine(scene_pos.x(), 0, scene_pos.x(), self.height())
+        else: # POINTS, POLYGON, LINES
+            if self.guide_line_x is not None:
+                self.removeItem(self.guide_line_x)
+                self.guide_line_x = None
+            if self.guide_line_y is not None:
+                self.removeItem(self.guide_line_y)
+                self.guide_line_y = None
+        # print(time.perf_counter() - start)
         
         if self.image_data is not None:
             self.main_window.statusBar().showMessage("Current Pose: ({}, {})".format(
                 int(scene_pos.x()),
                 int(scene_pos.y()),
             ))
-            
-        if (self.shape_item is not None and self.tmp_shape_item is not None):
-            if (self.snapping
-                and self.shape_type == Shape.ShapeType.POLYGON
-                and self.can_close_shape()
-                and self.close_enough(scene_pos, self.shape_item.points[0])):
-                scene_pos = self.shape_item.points[0]
-                self.shape_item.highlight_vertex(0, Shape.HightlightMode.NEAR_VERTEX)
-                self.tmp_shape_item.highlight_vertex(1, Shape.HightlightMode.NEAR_VERTEX)
-            else:
-                self.shape_item.highlight_clear()
-                self.tmp_shape_item.highlight_clear()
-            
-            if self.shape_type == Shape.ShapeType.POINTS:
-                self.tmp_shape_item.points[0] = scene_pos
-                self.tmp_shape_item.points[1] = scene_pos
-            else:
-                # RECTANGLE, POLYGON, LINES
-                self.tmp_shape_item.points[0] = self.shape_item.points[-1]
-                self.tmp_shape_item.points[1] = scene_pos
-            self.shape_item.update_pixmap()
-            self.tmp_shape_item.update_pixmap()
 
-        self.update()
         return super().mouseMoveEvent(event)
 
     def keyPressEvent(self, event):
         modifiers = event.modifiers()
         key = event.key()
-        if self.status_mode == Canvas.StatusMode.CREATE:
-            if (key == Qt.Key.Key_Escape 
-                and self.shape_item is not None
-                and self.tmp_shape_item is not None):
-                self.reset_shape_item()
-                self.update()
-        pass
