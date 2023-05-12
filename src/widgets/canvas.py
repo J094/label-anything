@@ -10,6 +10,7 @@ sys.path.append(os.path.realpath("."))
 from src.widgets.objects.shape import Shape
 from src.widgets.objects.prompt import Prompt
 
+import math
 import numpy as np
 from enum import Enum
 from PIL import Image, ImageQt
@@ -17,6 +18,7 @@ from PIL import Image, ImageQt
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsLineItem,
+    QApplication,
 )
 from PySide6.QtGui import QPainter
 
@@ -70,14 +72,18 @@ class Canvas(QGraphicsView):
         mouse_old = self.mapToScene(point.toPoint()) if point else None
 
         # Limit zoom ranges: 0.1 ~ 10
-        scaled_width = self.transform().scale(zoom_factor, zoom_factor).mapRect(QRectF(0, 0, 1, 1)).width()
+        scaled_width = self.transform().scale(
+            zoom_factor, zoom_factor,
+        ).mapRect(QRectF(0, 0, 1, 1)).width()
         if scaled_width > 10 or scaled_width < 0.1:
             return
 
         self.scale(zoom_factor, zoom_factor)
         if point is not None:
             mouse_now = self.mapToScene(point.toPoint())
-            center_now = self.mapToScene(self.viewport().width() // 2, self.viewport().height() // 2)
+            center_now = self.mapToScene(
+                self.viewport().width() // 2, self.viewport().height() // 2,
+            )
             center_new = mouse_old - mouse_now + center_now
             self.centerOn(center_new)
     
@@ -120,7 +126,11 @@ class CanvasScene(QGraphicsScene):
         self.guide_line_y = None
         self.draw_mode = Canvas.DrawMode.MANUAL
         self.status_mode = Canvas.StatusMode.CREATE
-        self.shape_type = Shape.ShapeType.POINTS
+        self.shape_type = Shape.ShapeType.RECTANGLE
+        # Snap last point with first point when draw POLYGON
+        self.snapping = True
+        # Snap threshold is 5 pixels
+        self.close_eplison = 5
         
     def load_image(self, image_path):
         self.clear()
@@ -144,11 +154,31 @@ class CanvasScene(QGraphicsScene):
         
     def reset_shape_item(self):
         if self.shape_item in self.items():
+            self.shape_item.highlight_clear()
+            self.shape_item.update_pixmap()
             self.removeItem(self.shape_item)
         if self.tmp_shape_item in self.items():
+            self.shape_item.highlight_clear()
+            self.shape_item.update_pixmap()
             self.removeItem(self.tmp_shape_item)
         self.shape_item = None
         self.tmp_shape_item = None
+        
+    def can_close_shape(self):
+        if (self.status_mode == Canvas.StatusMode.CREATE
+            and self.shape_item is not None
+            and len(self.shape_item.points) >= 3):
+            # At least 3 points
+            return True
+        else:
+            return False
+        
+    def close_enough(self, point_1, point_2):
+        point_delta = point_1 - point_2
+        distance = math.sqrt(
+            point_delta.x() * point_delta.x() + point_delta.y() * point_delta.y()
+        )
+        return distance < self.close_eplison
         
     def finish_draw_manual(self):
         self.shape_items.append(self.shape_item)
@@ -193,8 +223,7 @@ class CanvasScene(QGraphicsScene):
                         self.shape_item.add_point(point=scene_pos)
                         self.shape_item.update_pixmap()
                         self.tmp_shape_item = Shape(scene_rect=self.scene_rect, 
-                                              shape_type=self.shape_type, 
-                                              is_tmp=True)
+                                              shape_type=self.shape_type)
                         self.tmp_shape_item.add_point(point=scene_pos)
                         self.tmp_shape_item.add_point(point=scene_pos)
                         self.tmp_shape_item.update_pixmap()
@@ -220,6 +249,7 @@ class CanvasScene(QGraphicsScene):
                             self.tmp_shape_item.points[0] = self.shape_item.points[-1]
                             self.tmp_shape_item.update_pixmap()
                             if self.shape_item.closed:
+                                self.shape_item.points.pop()
                                 self.finish_draw_manual()
                         elif self.shape_type == Shape.ShapeType.LINES:
                             self.shape_item.add_point(self.tmp_shape_item.points[1])
@@ -247,11 +277,26 @@ class CanvasScene(QGraphicsScene):
         return super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
+        inside_scene = True
         scene_pos = event.scenePos()
-        if scene_pos.x() < 0: scene_pos.setX(0)
-        if scene_pos.x() > self.width(): scene_pos.setX(self.width())
-        if scene_pos.y() < 0: scene_pos.setY(0)
-        if scene_pos.y() > self.height(): scene_pos.setY(self.height())
+        if scene_pos.x() < 0: 
+            scene_pos.setX(0)
+            inside_scene = False
+        if scene_pos.x() > self.width(): 
+            scene_pos.setX(self.width())
+            inside_scene = False
+        if scene_pos.y() < 0: 
+            scene_pos.setY(0)
+            inside_scene = False
+        if scene_pos.y() > self.height(): 
+            scene_pos.setY(self.height())
+            inside_scene = False
+
+        # Cross shows only inside scene
+        if self.status_mode == Canvas.StatusMode.CREATE and inside_scene:
+            QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
+        else:
+            QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
 
         if self.guide_line_x is not None and self.guide_line_x in self.items():
             self.removeItem(self.guide_line_x)
@@ -259,12 +304,13 @@ class CanvasScene(QGraphicsScene):
         if self.guide_line_y is not None and self.guide_line_y in self.items():
             self.removeItem(self.guide_line_y)
             self.guide_line_y = None
-        self.guide_line_x = QGraphicsLineItem(0, scene_pos.y(), self.width(), scene_pos.y())
-        self.guide_line_x.setZValue(1)
-        self.addItem(self.guide_line_x)
-        self.guide_line_y = QGraphicsLineItem(scene_pos.x(), 0, scene_pos.x(), self.height())
-        self.guide_line_y.setZValue(1)
-        self.addItem(self.guide_line_y)
+        if self.shape_type == Shape.ShapeType.RECTANGLE:
+            self.guide_line_x = QGraphicsLineItem(0, scene_pos.y(), self.width(), scene_pos.y())
+            self.guide_line_x.setZValue(1)
+            self.addItem(self.guide_line_x)
+            self.guide_line_y = QGraphicsLineItem(scene_pos.x(), 0, scene_pos.x(), self.height())
+            self.guide_line_y.setZValue(1)
+            self.addItem(self.guide_line_y)
         
         if self.image_data is not None:
             self.main_window.statusBar().showMessage("Current Pose: ({}, {})".format(
@@ -272,8 +318,18 @@ class CanvasScene(QGraphicsScene):
                 int(scene_pos.y()),
             ))
             
-        if (self.shape_item is not None
-            and self.tmp_shape_item is not None):
+        if (self.shape_item is not None and self.tmp_shape_item is not None):
+            if (self.snapping
+                and self.shape_type == Shape.ShapeType.POLYGON
+                and self.can_close_shape()
+                and self.close_enough(scene_pos, self.shape_item.points[0])):
+                scene_pos = self.shape_item.points[0]
+                self.shape_item.highlight_vertex(0, Shape.HightlightMode.NEAR_VERTEX)
+                self.tmp_shape_item.highlight_vertex(1, Shape.HightlightMode.NEAR_VERTEX)
+            else:
+                self.shape_item.highlight_clear()
+                self.tmp_shape_item.highlight_clear()
+            
             if self.shape_type == Shape.ShapeType.POINTS:
                 self.tmp_shape_item.points[0] = scene_pos
                 self.tmp_shape_item.points[1] = scene_pos
@@ -281,7 +337,9 @@ class CanvasScene(QGraphicsScene):
                 # RECTANGLE, POLYGON, LINES
                 self.tmp_shape_item.points[0] = self.shape_item.points[-1]
                 self.tmp_shape_item.points[1] = scene_pos
+            self.shape_item.update_pixmap()
             self.tmp_shape_item.update_pixmap()
+
         self.update()
         return super().mouseMoveEvent(event)
 

@@ -40,22 +40,21 @@ class Shape(QGraphicsPixmapItem):
     select_fill_color = DEFAULT_SELECT_FILL_COLOR
     vertex_fill_color = DEFAULT_VERTEX_FILL_COLOR
     hvertex_fill_color = DEFAULT_HVERTEX_FILL_COLOR
-    point_type = PointType.ROUND
-    point_size = 8
-    scale_factor = 1.0
         
-    def __init__(self, parent=None, scene_rect=None, shape_type=None, is_tmp=False):
+    def __init__(self, parent=None, scene_rect=None, shape_type=None):
         super(Shape, self).__init__(parent)
 
         self.scene_rect = scene_rect
         self.shape_type = shape_type
-        self.is_tmp = is_tmp
         self.points = []
         self.points_flag = []
+        self.point_type = Shape.PointType.ROUND
+        self.point_size = 4
+        self.vertex_color = None
         self.highlight_index = None
-        self.highlight_mode = Shape.HightlightMode.NEAR_VERTEX
+        self.highlight_mode = None
         self.highlight_settings = {
-            Shape.HightlightMode.NEAR_VERTEX: (4, Shape.PointType.ROUND),
+            Shape.HightlightMode.NEAR_VERTEX: (2, Shape.PointType.ROUND),
             Shape.HightlightMode.MOVE_VERTEX: (1.5, Shape.PointType.SQUARE),
         }
         self.fill_shape = False
@@ -63,8 +62,19 @@ class Shape(QGraphicsPixmapItem):
         self.closed = False
         
     def add_point(self, point, point_flag=True):
+        # At least 3 points
+        if len(self.points) >= 3 and point == self.points[0]:
+            self.closed = True
         self.points.append(point)
         self.points_flag.append(point_flag)
+        
+    def highlight_clear(self):
+        self.highlight_index = None
+        self.highlight_mode = None
+        
+    def highlight_vertex(self, i, mode):
+        self.highlight_index = i
+        self.highlight_mode = mode
         
     def get_rect_from_points(self, point_1, point_2):
         x_1, y_1 = point_1.x(), point_1.y()
@@ -72,10 +82,10 @@ class Shape(QGraphicsPixmapItem):
         return QRectF(x_1, y_1, x_2 - x_1, y_2 - y_1)
         
     def draw_vertex(self, path, i):
-        d = self.point_size / self.scale_factor
+        d = self.point_size
         shape = self.point_type
         point = self.points[i]
-        if i == self.highlight_index:
+        if self.highlight_index == i:
             size, shape = self.highlight_settings[self.highlight_mode]
             d *= size
         if self.highlight_index is not None:
@@ -100,7 +110,7 @@ class Shape(QGraphicsPixmapItem):
         if len(self.points) > 0:
             color = self.select_line_color if self.selected else self.line_color
             pen = QPen(color)
-            pen.setWidth(max(1, int(round(2.0 / self.scale_factor))))
+            pen.setWidth(max(1, int(round(2.0))))
             painter.setPen(pen)
             
             line_path = QPainterPath()
