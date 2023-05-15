@@ -10,18 +10,12 @@ from enum import Enum
 from PySide6.QtGui import QColor
 
 
-class Object(object):
+class PromptObject(object):
     
-    # 4 types to draw
-    class ObjectType(Enum):
-        POINTS = 0
-        RECTANGLE = 1
-        POLYGON = 2
-        LINES = 3
-        
-    class PointType(Enum):
-        ROUND = 0
-        SQUARE = 1
+    # 2 types to prompt
+    class PromptObjectType(Enum):
+        SAM = 0
+        YOLO = 1
     
     default_line_color = QColor(0, 255, 0, 128)
     default_fill_color = QColor(0, 255, 0, 128)

@@ -6,18 +6,21 @@ import sys
 sys.path.append(os.path.realpath("."))
 
 from src.widgets.objects.guide_line import GuideLine
-from src.widgets.objects.object import Object
+from src.widgets.objects.draw_object import DrawObject
+from src.widgets.objects.draw_points import DrawPoints
+from src.widgets.objects.draw_rectangle import DrawRectangle
+from src.widgets.objects.prompt_object import PromptObject
 
 import time
 import numpy as np
 from enum import Enum
 from PIL import Image, ImageQt
 
-from PySide6.QtCore import Qt, QRectF
+from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtWidgets import (
     QApplication, QGraphicsView, QGraphicsScene, 
     QGraphicsPixmapItem, QGraphicsLineItem, QGraphicsEllipseItem,
-    QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsPathItem
+    QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsPathItem,
 )
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath
 
@@ -32,13 +35,13 @@ class Canvas(QGraphicsView):
         CREATE = 0
         EDIT = 1
 
-    class DrawMode(Enum):
+    class LabelMode(Enum):
         MANUAL = 0
         SAM = 1
+        YOLO = 2
     
     def __init__(self, parent=None):
         super(Canvas, self).__init__(parent)
-        
         self.zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.zoom_factor = 1.2
         
@@ -59,10 +62,14 @@ class Canvas(QGraphicsView):
         # scene() returns CanvasScene
         # self.scene()
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        DrawObject.scale_factor = self.transform().m11()
+        for canvas_object in self.scene().canvas_objects:
+            canvas_object.update_items()
+        
     
     def zoom_original(self):
-        zoom_facor = 1/self.transform().m11()
-        self.zoom(zoom_factor=zoom_facor)
+        zoom_factor = 1/self.transform().m11()
+        self.zoom(zoom_factor=zoom_factor)
     
     def zoom(self, zoom_factor, point=None):
         mouse_old = self.mapToScene(point.toPoint()) if point else None
@@ -75,7 +82,6 @@ class Canvas(QGraphicsView):
             return
 
         self.scale(zoom_factor, zoom_factor)
-        Object.scale_factor = Object.scale_factor * zoom_factor
         if point is not None:
             mouse_now = self.mapToScene(point.toPoint())
             center_now = self.mapToScene(
@@ -83,6 +89,10 @@ class Canvas(QGraphicsView):
             )
             center_new = mouse_old - mouse_now + center_now
             self.centerOn(center_new)
+        
+        DrawObject.scale_factor = DrawObject.scale_factor * zoom_factor
+        for canvas_object in self.scene().canvas_objects:
+            canvas_object.update_items()
     
     def resizeEvent(self, event):
         if self.zoom_mode == Canvas.ZoomMode.FIT_WINDOW:
@@ -111,17 +121,17 @@ class CanvasScene(QGraphicsScene):
     def __init__(self, parent=None, main_window=None):
         super(CanvasScene, self).__init__(parent)
         self.main_window = main_window
-
         self.scene_rect = None
         self.image_data = None
         self.guide_line_x = None
         self.guide_line_y = None
-        self.temp_line = None
-        self.object = None
-        self.objects = []
-        self.draw_mode = Canvas.DrawMode.MANUAL
+        self.canvas_objects = []
+        self.draw_object = None
+        self.draw_object_type = DrawObject.DrawObjectType.RECTANGLE
+        self.prompt_object = None
+        self.prompt_object_type = PromptObject.PromptObjectType.SAM
+        self.label_mode = Canvas.LabelMode.MANUAL
         self.status_mode = Canvas.StatusMode.CREATE
-        self.object_type = Object.ObjectType.RECTANGLE
         
     def load_image(self, image_path):
         self.clear()
@@ -143,13 +153,29 @@ class CanvasScene(QGraphicsScene):
         # Fit window
         self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.views()[0].zoom_fit_window()
+    
+    def reset_objects(self):
+        self.draw_object = None
+        self.prompt_object = None
         
     def reset_status(self):
         self.guide_line_x = None
         self.guide_line_y = None
-        self.temp_line = None
-        self.object = None
-        self.objects = []
+        self.canvas_objects = []
+        self.reset_objects()
+        
+    def finish_draw_manual(self):
+        self.canvas_objects.append(self.draw_object)
+        self.main_window.new_label(self.canvas_objects[-1])
+        self.canvas_objects[-1].update_items()
+        self.reset_objects()
+        print(self.canvas_objects)
+    
+    def finish_draw_sam(self):
+        pass
+    
+    def finish_draw_yolo(self):
+        pass
         
     def mousePressEvent(self, event):
         scene_pos = event.scenePos()
@@ -162,9 +188,11 @@ class CanvasScene(QGraphicsScene):
             #TODO: Left Click -> Draw Point
             if self.status_mode == Canvas.StatusMode.CREATE:
                 #TODO: CREATE mode
-                if self.draw_mode == Canvas.DrawMode.MANUAL:
-                    point_size = max(3.0, 6.0 / Object.scale_factor)
-                    line_width = max(1.0, 2.0 / Object.scale_factor)
+                if self.label_mode == Canvas.LabelMode.MANUAL:
+                    
+                    ### TEST ###
+                    # point_size = max(3.0, 6.0 / DrawObject.scale_factor)
+                    # line_width = max(1.0, 2.0 / DrawObject.scale_factor)
                     # line_item = QGraphicsLineItem(0, 0, scene_pos.x(), scene_pos.y())
                     # line_item_pen = QPen(Qt.GlobalColor.green)
                     # line_item_pen.setWidthF(line_width)
@@ -182,29 +210,86 @@ class CanvasScene(QGraphicsScene):
                     # ellipse_item.setPen(QPen(Qt.GlobalColor.green))
                     # ellipse_item.setBrush(QBrush(Qt.GlobalColor.red))
                     # self.addItem(ellipse_item)
-                    path_item = QGraphicsPathItem()
-                    path_item_pen = QPen(Qt.GlobalColor.green)
-                    path_item_pen.setWidthF(line_width)
-                    path_item.setPen(path_item_pen)
-                    path_item_brush = QBrush(Qt.GlobalColor.green)
-                    path_item.setBrush(path_item_brush)
-                    path_item_path = QPainterPath()
-                    path_item_path.moveTo(0, 0)
-                    path_item_path.lineTo(scene_pos.x(), scene_pos.y())
-                    path_item_path.addEllipse(scene_pos.x()-point_size/2, 
-                                              scene_pos.y()-point_size/2, 
-                                              point_size, 
-                                              point_size)
-                    path_item.setPath(path_item_path)
-                    self.addItem(path_item)
+                    # path_item = QGraphicsPathItem()
+                    # path_item_pen = QPen(Qt.GlobalColor.green)
+                    # path_item_pen.setWidthF(line_width)
+                    # path_item.setPen(path_item_pen)
+                    # path_item_path = QPainterPath()
+                    # path_item_path.moveTo(0, 0)
+                    # path_item_path.lineTo(scene_pos.x(), scene_pos.y())
+                    # path_item_path.addEllipse(scene_pos.x()-point_size/2, 
+                    #                           scene_pos.y()-point_size/2, 
+                    #                           point_size, 
+                    #                           point_size)
+                    # path_item.setPath(path_item_path)
+                    # self.addItem(path_item)
+                    # points = [QPointF(0, 0), QPointF(0, 500), QPointF(1000, 500), QPointF(500, 0)]
+                    # poly_item = QGraphicsPolygonItem(points)
+                    # poly_item_pen = QPen(Qt.GlobalColor.green)
+                    # poly_item_pen.setWidthF(line_width)
+                    # poly_item.setPen(poly_item_pen)
+                    # poly_item.setBrush(QBrush(Qt.GlobalColor.red))
+                    # self.addItem(poly_item)
+                    # for point in points:
+                    #     ellipse_item = QGraphicsEllipseItem(point.x()-point_size/2, 
+                    #                                         point.y()-point_size/2, 
+                    #                                         point_size, 
+                    #                                         point_size)
+                    #     ellipse_item_pen = QPen(Qt.GlobalColor.green)
+                    #     ellipse_item_pen.setWidthF(line_width)
+                    #     ellipse_item.setPen(ellipse_item_pen)
+                    #     ellipse_item.setBrush(QBrush(Qt.GlobalColor.red))
+                    #     self.addItem(ellipse_item)
+                    # for point in points:
+                    #     rect_item = QGraphicsRectItem(point.x()-point_size/2, 
+                    #                                         point.y()-point_size/2, 
+                    #                                         point_size, 
+                    #                                         point_size)
+                    #     rect_item_pen = QPen(Qt.GlobalColor.green)
+                    #     rect_item_pen.setWidthF(line_width)
+                    #     rect_item.setPen(rect_item_pen)
+                    #     rect_item.setBrush(QBrush(Qt.GlobalColor.red))
+                    #     self.addItem(rect_item)
+                    ### TEST ###
+                    
+                    if self.draw_object is None:
+                        if self.draw_object_type == DrawObject.DrawObjectType.POINTS:
+                            self.draw_object = DrawPoints(canvas_scene=self)
+                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.update_items()
+                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                                self.draw_object.closed = True
+                                self.finish_draw_manual()
+                        elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
+                            self.draw_object = DrawRectangle(canvas_scene=self)
+                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.update_items()
+                            if self.draw_object.closed:
+                                self.finish_draw_manual()
+                    else:
+                        if self.draw_object_type == DrawObject.DrawObjectType.POINTS:
+                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.update_items()
+                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                                self.draw_object.closed = True
+                                self.finish_draw_manual()
+                        elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
+                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.update_items()
+                            if self.draw_object.closed:
+                                self.finish_draw_manual()
                     pass
-                elif self.draw_mode == Canvas.DrawMode.SAM:
+                elif self.label_mode == Canvas.LabelMode.SAM:
+                    pass
+                elif self.label_mode == Canvas.LabelMode.YOLO:
                     pass
             elif self.status_mode == Canvas.StatusMode.EDIT:
                 #TODO: EDIT mode
-                if self.draw_mode == Canvas.DrawMode.MANUAL:
+                if self.label_mode == Canvas.LabelMode.MANUAL:
                     pass
-                elif self.draw_mode == Canvas.DrawMode.SAM:
+                elif self.label_mode == Canvas.LabelMode.SAM:
+                    pass
+                elif self.label_mode == Canvas.LabelMode.YOLO:
                     pass
         elif (event.button() == Qt.MouseButton.RightButton
               and self.status_mode == Canvas.StatusMode.EDIT):
@@ -235,7 +320,7 @@ class CanvasScene(QGraphicsScene):
         else:
             QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
 
-        if self.object_type == Object.ObjectType.RECTANGLE:
+        if self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
             if self.guide_line_x is None:
                 self.guide_line_x = GuideLine(0, scene_pos.y(), self.width(), scene_pos.y())
                 self.addItem(self.guide_line_x)

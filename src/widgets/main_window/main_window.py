@@ -14,13 +14,16 @@ from src.widgets.canvas import Canvas, CanvasScene
 #     pyside2-uic form.ui -o ui_form.py
 from src.widgets.main_window.ui_form import Ui_MainWindow
 
+import imgviz
 from enum import Enum
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QLabel,
 )
-from PySide6.QtGui import QImageReader, QImage
+from PySide6.QtGui import QImageReader, QImage, QColor
 
+
+LABEL_COLORMAP = imgviz.label_colormap()
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -35,7 +38,6 @@ class MainWindow(QMainWindow):
         self.label_dir = None
         self.label_path = None
         self.label_paths = []
-
         # True: changes not saved
         # False: all changes saved
         self.dirty = False
@@ -95,6 +97,13 @@ class MainWindow(QMainWindow):
         if len(self.file_paths) > 0:
             self.file_path = self.file_paths[0]
             self.load_file()
+            
+    def new_label(self, canvas_object):
+        r, g, b = LABEL_COLORMAP[len(self.graphicsScene_canvas_scene.canvas_objects) %
+                                  len(LABEL_COLORMAP)]
+        canvas_object.line_color = QColor(r, g, b, 128)
+        canvas_object.point_color = QColor(r, g, b, 255)
+        
         
     def slot_open(self):
         path = os.path.dirname(self.file_path) if self.file_path else "."
