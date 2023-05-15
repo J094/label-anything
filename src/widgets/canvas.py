@@ -295,6 +295,7 @@ class CanvasScene(QGraphicsScene):
               and self.status_mode == Canvas.StatusMode.EDIT):
             #TODO: Right Click -> Open Menu
             pass
+        self.update()
         return super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
@@ -345,7 +346,13 @@ class CanvasScene(QGraphicsScene):
                 int(scene_pos.x()),
                 int(scene_pos.y()),
             ))
+            
+        if (self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE
+            and self.draw_object is not None):
+            self.draw_object.points[1] = scene_pos
+            self.draw_object.update_items()
 
+        self.update()
         return super().mouseMoveEvent(event)
 
     def keyPressEvent(self, event):
