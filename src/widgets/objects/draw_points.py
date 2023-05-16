@@ -22,8 +22,6 @@ class DrawPoints(DrawObject):
         self.point_color = DrawObject.default_point_color
         
     def add_point(self, point):
-        self.update_point_size()
-        self.update_line_width()
         point_item = QGraphicsEllipseItem()
         self.canvas_scene.addItem(point_item)
         self.points.append(point)
@@ -36,12 +34,12 @@ class DrawPoints(DrawObject):
         self.update_point_size()
         self.update_line_width()
         point_pen = QPen(self.line_color)
+        point_pen.setWidthF(self.line_width)
         point_brush = QBrush(self.point_color)
         for (i, point) in enumerate(self.points):
             self.point_items[i].setRect(point.x()-self.point_size/2,
                                         point.y()-self.point_size/2,
                                         self.point_size,
                                         self.point_size)
-            point_pen.setWidthF(self.line_width)
             self.point_items[i].setPen(point_pen)
             self.point_items[i].setBrush(point_brush)

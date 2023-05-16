@@ -5,10 +5,13 @@ import os
 import sys
 sys.path.append(os.path.realpath("."))
 
+import src.utils.qt as utils_qt
 from src.widgets.objects.guide_line import GuideLine
 from src.widgets.objects.draw_object import DrawObject
 from src.widgets.objects.draw_points import DrawPoints
 from src.widgets.objects.draw_rectangle import DrawRectangle
+from src.widgets.objects.draw_polygon import DrawPolygon
+from src.widgets.objects.draw_lines import DrawLines
 from src.widgets.objects.prompt_object import PromptObject
 
 import time
@@ -65,6 +68,8 @@ class Canvas(QGraphicsView):
         DrawObject.scale_factor = self.transform().m11()
         for canvas_object in self.scene().canvas_objects:
             canvas_object.update_items()
+        if self.scene().draw_object is not None:
+            self.scene().draw_object.update_items()
         
     
     def zoom_original(self):
@@ -93,6 +98,8 @@ class Canvas(QGraphicsView):
         DrawObject.scale_factor = DrawObject.scale_factor * zoom_factor
         for canvas_object in self.scene().canvas_objects:
             canvas_object.update_items()
+        if self.scene().draw_object is not None:
+            self.scene().draw_object.update_items()
     
     def resizeEvent(self, event):
         if self.zoom_mode == Canvas.ZoomMode.FIT_WINDOW:
@@ -131,7 +138,9 @@ class CanvasScene(QGraphicsScene):
         self.prompt_object = None
         self.prompt_object_type = PromptObject.PromptObjectType.SAM
         self.label_mode = Canvas.LabelMode.MANUAL
-        self.status_mode = Canvas.StatusMode.CREATE
+        self.status_mode = None
+        self.point_to_add = None
+        self.snapping = True
         
     def load_image(self, image_path):
         self.clear()
@@ -153,6 +162,7 @@ class CanvasScene(QGraphicsScene):
         # Fit window
         self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.views()[0].zoom_fit_window()
+        self.status_mode = Canvas.StatusMode.CREATE
     
     def reset_objects(self):
         self.draw_object = None
@@ -169,7 +179,7 @@ class CanvasScene(QGraphicsScene):
         self.main_window.new_label(self.canvas_objects[-1])
         self.canvas_objects[-1].update_items()
         self.reset_objects()
-        print(self.canvas_objects)
+        # print(self.canvas_objects)
     
     def finish_draw_sam(self):
         pass
@@ -178,11 +188,11 @@ class CanvasScene(QGraphicsScene):
         pass
         
     def mousePressEvent(self, event):
-        scene_pos = event.scenePos()
-        if scene_pos.x() < 0: scene_pos.setX(0)
-        if scene_pos.x() > self.width(): scene_pos.setX(self.width())
-        if scene_pos.y() < 0: scene_pos.setY(0)
-        if scene_pos.y() > self.height(): scene_pos.setY(self.height())
+        # scene_pos = event.scenePos()
+        # if scene_pos.x() < 0: scene_pos.setX(0)
+        # if scene_pos.x() > self.width(): scene_pos.setX(self.width())
+        # if scene_pos.y() < 0: scene_pos.setY(0)
+        # if scene_pos.y() > self.height(): scene_pos.setY(self.height())
         
         if event.button() == Qt.MouseButton.LeftButton:
             #TODO: Left Click -> Draw Point
@@ -255,28 +265,45 @@ class CanvasScene(QGraphicsScene):
                     if self.draw_object is None:
                         if self.draw_object_type == DrawObject.DrawObjectType.POINTS:
                             self.draw_object = DrawPoints(canvas_scene=self)
-                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
                                 self.draw_object.closed = True
                                 self.finish_draw_manual()
                         elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
                             self.draw_object = DrawRectangle(canvas_scene=self)
-                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
-                            if self.draw_object.closed:
-                                self.finish_draw_manual()
+                        elif self.draw_object_type == DrawObject.DrawObjectType.POLYGON:
+                            self.draw_object = DrawPolygon(canvas_scene=self)
+                            self.draw_object.add_point(self.point_to_add)
+                            self.draw_object.update_items()
+                        elif self.draw_object_type == DrawObject.DrawObjectType.LINES:
+                            self.draw_object = DrawLines(canvas_scene=self)
+                            self.draw_object.add_point(self.point_to_add)
+                            self.draw_object.update_items()
                     else:
                         if self.draw_object_type == DrawObject.DrawObjectType.POINTS:
-                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
                                 self.draw_object.closed = True
                                 self.finish_draw_manual()
                         elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
-                            self.draw_object.add_point(scene_pos)
+                            self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
                             if self.draw_object.closed:
+                                self.finish_draw_manual()
+                        elif self.draw_object_type == DrawObject.DrawObjectType.POLYGON:
+                            self.draw_object.add_point(self.point_to_add)
+                            self.draw_object.update_items()
+                            if self.draw_object.closed:
+                                self.finish_draw_manual()
+                        elif self.draw_object_type == DrawObject.DrawObjectType.LINES:
+                            self.draw_object.add_point(self.point_to_add)
+                            self.draw_object.update_items()
+                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                                self.draw_object.closed = True
                                 self.finish_draw_manual()
                     pass
                 elif self.label_mode == Canvas.LabelMode.SAM:
@@ -313,6 +340,30 @@ class CanvasScene(QGraphicsScene):
         if scene_pos.y() > self.height(): 
             scene_pos.setY(self.height())
             inside_scene = False
+        self.point_to_add = scene_pos
+
+        if self.draw_object is not None:
+            if self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
+                self.draw_object.points[1] = self.point_to_add
+                self.draw_object.update_items()
+            elif self.draw_object_type == DrawObject.DrawObjectType.POLYGON:
+                if (self.snapping
+                    and len(self.draw_object.points) >= 3):
+                    point_1 = self.draw_object.points[0]
+                    point_2 = self.point_to_add
+                    distance = utils_qt.distance_points(point_1, point_2)
+                    if distance <= 10:
+                        self.point_to_add = point_1
+                        self.draw_object.point_color = DrawObject.default_selected_point_color
+                        self.draw_object.point_size_base = 2 * DrawObject.default_point_size_base
+                    else:
+                        self.draw_object.point_color = DrawObject.default_point_color
+                        self.draw_object.point_size_base = DrawObject.default_point_size_base
+                self.draw_object.last_point = self.point_to_add
+                self.draw_object.update_items()
+            elif self.draw_object_type == DrawObject.DrawObjectType.LINES:
+                self.draw_object.last_point = self.point_to_add
+                self.draw_object.update_items()
 
         # Cross shows only inside scene
         # start = time.perf_counter()
@@ -323,15 +374,19 @@ class CanvasScene(QGraphicsScene):
 
         if self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
             if self.guide_line_x is None:
-                self.guide_line_x = GuideLine(0, scene_pos.y(), self.width(), scene_pos.y())
+                self.guide_line_x = GuideLine(0, self.point_to_add.y(), 
+                                              self.width(), self.point_to_add.y())
                 self.addItem(self.guide_line_x)
             else:
-                self.guide_line_x.setLine(0, scene_pos.y(), self.width(), scene_pos.y())
+                self.guide_line_x.setLine(0, self.point_to_add.y(), 
+                                          self.width(), self.point_to_add.y())
             if self.guide_line_y is None:
-                self.guide_line_y = GuideLine(scene_pos.x(), 0, scene_pos.x(), self.height())
+                self.guide_line_y = GuideLine(self.point_to_add.x(), 0, 
+                                              self.point_to_add.x(), self.height())
                 self.addItem(self.guide_line_y)
             else:
-                self.guide_line_y.setLine(scene_pos.x(), 0, scene_pos.x(), self.height())
+                self.guide_line_y.setLine(self.point_to_add.x(), 0, 
+                                          self.point_to_add.x(), self.height())
         else: # POINTS, POLYGON, LINES
             if self.guide_line_x is not None:
                 self.removeItem(self.guide_line_x)
@@ -340,17 +395,12 @@ class CanvasScene(QGraphicsScene):
                 self.removeItem(self.guide_line_y)
                 self.guide_line_y = None
         # print(time.perf_counter() - start)
-        
+
         if self.image_data is not None:
             self.main_window.statusBar().showMessage("Current Pose: ({}, {})".format(
-                int(scene_pos.x()),
-                int(scene_pos.y()),
+                int(self.point_to_add.x()),
+                int(self.point_to_add.y()),
             ))
-            
-        if (self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE
-            and self.draw_object is not None):
-            self.draw_object.points[1] = scene_pos
-            self.draw_object.update_items()
 
         self.update()
         return super().mouseMoveEvent(event)
