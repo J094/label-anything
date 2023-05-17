@@ -51,7 +51,6 @@ class DrawPolygon(DrawObject):
             polygon_item = QGraphicsPolygonItem()
             self.canvas_scene.addItem(polygon_item)
             self.polygon_item = polygon_item
-            self.point_size_base = DrawObject.default_point_size_base
             return
         point_item = QGraphicsEllipseItem()
         self.canvas_scene.addItem(point_item)

@@ -32,6 +32,8 @@ class DrawObject(object):
     def __init__(self, canvas_scene=None):
         self.canvas_scene = canvas_scene
 
+        self.label_name = None
+        self.group_id = None
         self.draw_object_type = None
         self.point_size_base = DrawObject.default_point_size_base
         self.point_size = None

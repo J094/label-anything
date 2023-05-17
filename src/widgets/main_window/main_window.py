@@ -7,7 +7,9 @@ sys.path.append(os.path.realpath("."))
 
 from src.widgets.file_list.file_list import FileList
 from src.widgets.label_list.label_list import LabelList
+from src.widgets.label_dialog.label_dialog import LabelDialog
 from src.widgets.canvas import Canvas, CanvasScene
+from src.widgets.objects.draw_object import DrawObject
 # Important:
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
@@ -38,6 +40,11 @@ class MainWindow(QMainWindow):
         self.label_dir = None
         self.label_path = None
         self.label_paths = []
+        self.label_names = []
+        self.labeled_objects = []
+        # Key: label_name
+        # Value: r, g, b
+        self.color_map = {}
         # True: changes not saved
         # False: all changes saved
         self.dirty = False
@@ -55,6 +62,8 @@ class MainWindow(QMainWindow):
         self.graphicsView_canvas = Canvas()
         self.graphicsView_canvas.setScene(self.graphicsScene_canvas_scene)
         self.setCentralWidget(self.graphicsView_canvas)
+        
+        self.dialog_label_dialog = LabelDialog(self)
         
     def setup_slot(self):
         self.ui.action_Open.triggered.connect(self.slot_open)
@@ -97,13 +106,31 @@ class MainWindow(QMainWindow):
         if len(self.file_paths) > 0:
             self.file_path = self.file_paths[0]
             self.load_file()
+    
+    def update_canvas_object(self, canvas_object):
+        r, g, b = LABEL_COLORMAP[(self.label_names.index(canvas_object.label_name) + 1) %
+                                  len(LABEL_COLORMAP)]
+        self.color_map[canvas_object.label_name] = [r, g, b]
+        canvas_object.line_color = QColor(r, g, b, 255)
+        canvas_object.point_color = QColor(r, g, b, 255)
+        canvas_object.point_size_base = DrawObject.default_point_size_base
+        canvas_object.update_items()
             
     def new_label(self, canvas_object):
-        r, g, b = LABEL_COLORMAP[len(self.graphicsScene_canvas_scene.canvas_objects) %
-                                  len(LABEL_COLORMAP)]
-        canvas_object.line_color = QColor(r, g, b, 128)
-        canvas_object.point_color = QColor(r, g, b, 255)
+        self.dialog_label_dialog.exec()
+        label_name = self.dialog_label_dialog.ui.lineEdit_Label_Name.text()
+        group_id = self.dialog_label_dialog.ui.lineEdit_Group_ID.text()
+        print(label_name)
+        print(group_id)
+        canvas_object.label_name = label_name
+        canvas_object.group_id = group_id
+        if label_name not in self.label_names:
+            self.label_names.append(label_name)
+        self.labeled_objects = self.graphicsScene_canvas_scene.canvas_objects
         
+        self.update_canvas_object(canvas_object)
+        self.widget_label_list.update_list()
+        self.dialog_label_dialog.update_list()
         
     def slot_open(self):
         path = os.path.dirname(self.file_path) if self.file_path else "."

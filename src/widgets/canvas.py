@@ -49,7 +49,7 @@ class Canvas(QGraphicsView):
         self.zoom_factor = 1.2
         
         self.setMouseTracking(True)
-        self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True)
         self.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontSavePainterState, True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -134,7 +134,7 @@ class CanvasScene(QGraphicsScene):
         self.guide_line_y = None
         self.canvas_objects = []
         self.draw_object = None
-        self.draw_object_type = DrawObject.DrawObjectType.RECTANGLE
+        self.draw_object_type = DrawObject.DrawObjectType.POLYGON
         self.prompt_object = None
         self.prompt_object_type = PromptObject.PromptObjectType.SAM
         self.label_mode = Canvas.LabelMode.MANUAL
@@ -330,16 +330,12 @@ class CanvasScene(QGraphicsScene):
         scene_pos = event.scenePos()
         if scene_pos.x() < 0: 
             scene_pos.setX(0)
-            inside_scene = False
         if scene_pos.x() > self.width(): 
             scene_pos.setX(self.width())
-            inside_scene = False
         if scene_pos.y() < 0: 
             scene_pos.setY(0)
-            inside_scene = False
         if scene_pos.y() > self.height(): 
             scene_pos.setY(self.height())
-            inside_scene = False
         self.point_to_add = scene_pos
 
         if self.draw_object is not None:
@@ -367,10 +363,10 @@ class CanvasScene(QGraphicsScene):
 
         # Cross shows only inside scene
         # start = time.perf_counter()
-        if self.status_mode == Canvas.StatusMode.CREATE and inside_scene:
-            QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
+        if self.status_mode == Canvas.StatusMode.CREATE:
+            self.views()[0].setCursor(Qt.CursorShape.CrossCursor)
         else:
-            QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
+            self.views()[0].setCursor(Qt.CursorShape.ArrowCursor)
 
         if self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
             if self.guide_line_x is None:
