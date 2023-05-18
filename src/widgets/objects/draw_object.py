@@ -26,7 +26,7 @@ class DrawObject(object):
     default_selected_fill_color = QColor(0, 255, 0, 155)
     default_selected_point_color = QColor(255, 255, 255, 255)
     default_point_size_base = 8.0
-    default_line_width_base = 3.0
+    default_line_width_base = 2.0
     scale_factor = 1.0
     
     def __init__(self, canvas_scene=None):
@@ -40,7 +40,13 @@ class DrawObject(object):
         self.line_width_base = DrawObject.default_line_width_base
         self.line_width = None
         self.closed = False
-        
+    
+    def add_point(self, point):
+        pass
+    
+    def update_items(self):
+        pass
+    
     def update_point_size(self):
         self.point_size = max(3.0, self.point_size_base / DrawObject.scale_factor)
         # print("point size:", self.point_size)

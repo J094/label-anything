@@ -25,15 +25,15 @@ class LabelList(QWidget):
         self.ui = Ui_LabelList()
         self.ui.setupUi(self)
         
-    def add_item(self, labeled_object):
-        r, g, b = self.main_window.color_map[labeled_object.label_name]
+    def add_item(self, canvas_object):
+        r, g, b = self.main_window.color_map[canvas_object.label_name]
         item = QListWidgetItem()
         item.setSizeHint(QSize(200, 20))
         
         item_widget = QWidget()
         
-        layout_h = QHBoxLayout()
-        layout_h.setContentsMargins(9, 1, 9, 1)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(9, 1, 9, 1)
         
         check_box = QCheckBox()
         check_box.setFixedWidth(20)
@@ -50,25 +50,29 @@ class LabelList(QWidget):
         painter.drawEllipse(4, 4, 10, 10)
         painter.end()
         
+        label_name = QLabel(canvas_object.label_name)
+
         label_color = QLabel()
         label_color.setFixedWidth(20)
         label_color.setPixmap(pixmap)
         
-        label_name = QLabel(labeled_object.label_name)
-
-        layout_h.addWidget(check_box)
-        layout_h.addWidget(label_color)
-        layout_h.addWidget(label_name)
+        layout.addWidget(check_box)
+        layout.addWidget(label_name)
+        if canvas_object.group_id != "":
+            group_id = QLabel(f"(Group ID: {canvas_object.group_id})")
+            group_id.setAlignment(Qt.AlignmentFlag.AlignRight)
+            layout.addWidget(group_id)
+        layout.addWidget(label_color)
         
-        item_widget.setLayout(layout_h)
+        item_widget.setLayout(layout)
         
         self.ui.listWidget_Labels.addItem(item)
         self.ui.listWidget_Labels.setItemWidget(item, item_widget)
         
     def update_list(self):
         self.ui.listWidget_Labels.clear()
-        for labeled_object in self.main_window.labeled_objects:
-            self.add_item(labeled_object)
+        for canvas_object in self.main_window.canvas_objects:
+            self.add_item(canvas_object)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

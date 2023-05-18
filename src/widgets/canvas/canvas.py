@@ -6,6 +6,7 @@ import sys
 sys.path.append(os.path.realpath("."))
 
 import src.utils.qt as utils_qt
+import src.utils.image as utils_image
 from src.widgets.objects.guide_line import GuideLine
 from src.widgets.objects.draw_object import DrawObject
 from src.widgets.objects.draw_points import DrawPoints
@@ -17,7 +18,6 @@ from src.widgets.objects.prompt_object import PromptObject
 import time
 import numpy as np
 from enum import Enum
-from PIL import Image, ImageQt
 
 from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtWidgets import (
@@ -25,7 +25,9 @@ from PySide6.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsLineItem, QGraphicsEllipseItem,
     QGraphicsRectItem, QGraphicsPolygonItem, QGraphicsPathItem,
 )
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath
+from PySide6.QtGui import (
+    QPainter, QColor, QPen, QBrush, QPainterPath, QPixmap, QImage
+)
 
 
 class Canvas(QGraphicsView):
@@ -142,14 +144,17 @@ class CanvasScene(QGraphicsScene):
         self.point_to_add = None
         self.snapping = True
         
-    def load_image(self, image_path):
+    def load_image(self, image_path=None, image_data=None):
         self.clear()
         self.reset_status()
         # views() returns all views of this scene
         # self.views()
-        image_pil = Image.open(image_path)
-        image_pixmap = ImageQt.toqpixmap(image_pil)
-        self.image_data = np.array(image_pil)
+        if image_path is not None:
+            self.image_data = utils_image.load_image_data(image_path)
+        elif image_data is not None:
+            self.image_data = image_data
+        image = QImage.fromData(self.image_data)
+        image_pixmap = QPixmap.fromImage(image)
         self.image_item = QGraphicsPixmapItem()
         self.image_item.setZValue(0)
         self.image_item.setPixmap(image_pixmap)
@@ -163,6 +168,26 @@ class CanvasScene(QGraphicsScene):
         self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.views()[0].zoom_fit_window()
         self.status_mode = Canvas.StatusMode.CREATE
+        
+    def load_objects(self, objects):
+        for object in objects:
+            object_type = object["object_type"]
+            if object_type == "points":
+                canvas_object = DrawPoints(canvas_scene=self)
+            elif object_type == "rectangle":
+                canvas_object = DrawRectangle(canvas_scene=self)
+            elif object_type == "polygon":
+                canvas_object = DrawPolygon(canvas_scene=self)
+            elif object_type == "lines":
+                canvas_object = DrawLines(canvas_scene=self)
+            canvas_object.label_name = object["label_name"]
+            canvas_object.group_id = object["group_id"]
+            for point in object["points"]:
+                canvas_object.add_point(QPointF(*point))
+            if canvas_object.draw_object_type == DrawObject.DrawObjectType.POLYGON:
+                canvas_object.add_point(QPointF(*object["points"][0]))
+            self.canvas_objects.append(canvas_object)
+            self.main_window.add_label(canvas_object)
     
     def reset_objects(self):
         self.draw_object = None
@@ -176,8 +201,7 @@ class CanvasScene(QGraphicsScene):
         
     def finish_draw_manual(self):
         self.canvas_objects.append(self.draw_object)
-        self.main_window.new_label(self.canvas_objects[-1])
-        self.canvas_objects[-1].update_items()
+        self.main_window.new_label()
         self.reset_objects()
         # print(self.canvas_objects)
     
@@ -199,69 +223,6 @@ class CanvasScene(QGraphicsScene):
             if self.status_mode == Canvas.StatusMode.CREATE:
                 #TODO: CREATE mode
                 if self.label_mode == Canvas.LabelMode.MANUAL:
-                    
-                    ### TEST ###
-                    # point_size = max(3.0, 6.0 / DrawObject.scale_factor)
-                    # line_width = max(1.0, 2.0 / DrawObject.scale_factor)
-                    # line_item = QGraphicsLineItem(0, 0, scene_pos.x(), scene_pos.y())
-                    # line_item_pen = QPen(Qt.GlobalColor.green)
-                    # line_item_pen.setWidthF(line_width)
-                    # line_item.setPen(line_item_pen)
-                    # self.addItem(line_item)
-                    # rect_item = QGraphicsRectItem(0, 0, scene_pos.x(), scene_pos.y())
-                    # rect_item_pen = QPen(Qt.GlobalColor.green)
-                    # rect_item_pen.setWidthF(line_width)
-                    # rect_item.setPen(rect_item_pen)
-                    # self.addItem(rect_item)
-                    # ellipse_item = QGraphicsEllipseItem(scene_pos.x()-point_size/2, 
-                    #                                     scene_pos.y()-point_size/2, 
-                    #                                     point_size, 
-                    #                                     point_size)
-                    # ellipse_item.setPen(QPen(Qt.GlobalColor.green))
-                    # ellipse_item.setBrush(QBrush(Qt.GlobalColor.red))
-                    # self.addItem(ellipse_item)
-                    # path_item = QGraphicsPathItem()
-                    # path_item_pen = QPen(Qt.GlobalColor.green)
-                    # path_item_pen.setWidthF(line_width)
-                    # path_item.setPen(path_item_pen)
-                    # path_item_path = QPainterPath()
-                    # path_item_path.moveTo(0, 0)
-                    # path_item_path.lineTo(scene_pos.x(), scene_pos.y())
-                    # path_item_path.addEllipse(scene_pos.x()-point_size/2, 
-                    #                           scene_pos.y()-point_size/2, 
-                    #                           point_size, 
-                    #                           point_size)
-                    # path_item.setPath(path_item_path)
-                    # self.addItem(path_item)
-                    # points = [QPointF(0, 0), QPointF(0, 500), QPointF(1000, 500), QPointF(500, 0)]
-                    # poly_item = QGraphicsPolygonItem(points)
-                    # poly_item_pen = QPen(Qt.GlobalColor.green)
-                    # poly_item_pen.setWidthF(line_width)
-                    # poly_item.setPen(poly_item_pen)
-                    # poly_item.setBrush(QBrush(Qt.GlobalColor.red))
-                    # self.addItem(poly_item)
-                    # for point in points:
-                    #     ellipse_item = QGraphicsEllipseItem(point.x()-point_size/2, 
-                    #                                         point.y()-point_size/2, 
-                    #                                         point_size, 
-                    #                                         point_size)
-                    #     ellipse_item_pen = QPen(Qt.GlobalColor.green)
-                    #     ellipse_item_pen.setWidthF(line_width)
-                    #     ellipse_item.setPen(ellipse_item_pen)
-                    #     ellipse_item.setBrush(QBrush(Qt.GlobalColor.red))
-                    #     self.addItem(ellipse_item)
-                    # for point in points:
-                    #     rect_item = QGraphicsRectItem(point.x()-point_size/2, 
-                    #                                         point.y()-point_size/2, 
-                    #                                         point_size, 
-                    #                                         point_size)
-                    #     rect_item_pen = QPen(Qt.GlobalColor.green)
-                    #     rect_item_pen.setWidthF(line_width)
-                    #     rect_item.setPen(rect_item_pen)
-                    #     rect_item.setBrush(QBrush(Qt.GlobalColor.red))
-                    #     self.addItem(rect_item)
-                    ### TEST ###
-                    
                     if self.draw_object is None:
                         if self.draw_object_type == DrawObject.DrawObjectType.POINTS:
                             self.draw_object = DrawPoints(canvas_scene=self)
@@ -305,7 +266,6 @@ class CanvasScene(QGraphicsScene):
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
                                 self.draw_object.closed = True
                                 self.finish_draw_manual()
-                    pass
                 elif self.label_mode == Canvas.LabelMode.SAM:
                     pass
                 elif self.label_mode == Canvas.LabelMode.YOLO:

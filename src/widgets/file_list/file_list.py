@@ -26,18 +26,21 @@ class FileList(QWidget):
         
     def update_list(self):
         self.ui.listWidget_Files.clear()
-        for file_path in self.main_window.file_paths:
-            _, file_name = os.path.split(file_path)
+        for (i, image_path) in enumerate(self.main_window.image_paths):
+            _, image_name = os.path.split(image_path)
             item = QListWidgetItem()
-            item.setCheckState(Qt.CheckState.Unchecked)
+            if os.path.exists(self.main_window.output_paths[i]):
+                item.setCheckState(Qt.CheckState.Checked)
+            else:    
+                item.setCheckState(Qt.CheckState.Unchecked)
             item.setSizeHint(QSize(200, 20))
-            item.setText(file_name)
+            item.setText(image_name)
             self.ui.listWidget_Files.addItem(item)
-        self.ui.label_Total.setText('{}'.format(len(self.main_window.file_paths)))
+        self.ui.label_Total.setText('{}'.format(len(self.main_window.image_paths)))
     
     def slot_clicked(self):
         index = self.ui.listWidget_Files.currentRow()
-        self.main_window.file_path = self.main_window.file_paths[index]
+        self.main_window.image_path = self.main_window.image_paths[index]
         self.main_window.load_file()
 
 

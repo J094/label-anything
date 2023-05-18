@@ -28,6 +28,9 @@
      <string>&amp;FIle</string>
     </property>
     <widget class="QMenu" name="menu_Open_Recent">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>Open &amp;Recent</string>
      </property>
@@ -60,13 +63,11 @@
     <addaction name="action_Create_Points"/>
     <addaction name="action_Create_Rectangle"/>
     <addaction name="action_Create_Polygon"/>
-    <addaction name="action_Create_Line"/>
+    <addaction name="action_Create_Lines"/>
     <addaction name="separator"/>
     <addaction name="action_Finish_Prompt"/>
     <addaction name="separator"/>
     <addaction name="action_Edit_Object"/>
-    <addaction name="action_Edit_Label"/>
-    <addaction name="action_Delete_Object"/>
     <addaction name="separator"/>
     <addaction name="action_Undo"/>
     <addaction name="action_Redo"/>
@@ -134,11 +135,15 @@
     <set>Qt::AllToolBarAreas</set>
    </property>
    <attribute name="toolBarArea">
-    <enum>BottomToolBarArea</enum>
+    <enum>LeftToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="separator"/>
+   <addaction name="action_Setup_Assist"/>
+   <addaction name="separator"/>
+   <addaction name="separator"/>
    <addaction name="action_Next_Image"/>
    <addaction name="action_Prev_Image"/>
    <addaction name="separator"/>
@@ -147,18 +152,17 @@
    <addaction name="action_Create_Points"/>
    <addaction name="action_Create_Rectangle"/>
    <addaction name="action_Create_Polygon"/>
-   <addaction name="action_Create_Line"/>
+   <addaction name="action_Create_Lines"/>
    <addaction name="separator"/>
    <addaction name="action_Finish_Prompt"/>
    <addaction name="separator"/>
    <addaction name="action_Edit_Object"/>
    <addaction name="separator"/>
-   <addaction name="action_Setup_Assist"/>
-   <addaction name="separator"/>
    <addaction name="action_Manual_Mode"/>
    <addaction name="action_SAM_Mode"/>
    <addaction name="separator"/>
    <addaction name="action_Fit_Window"/>
+   <addaction name="separator"/>
   </widget>
   <action name="action_Open_Dir">
    <property name="text">
@@ -171,21 +175,33 @@
    </property>
   </action>
   <action name="action_Next_Image">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Next Image</string>
    </property>
   </action>
   <action name="action_Prev_Image">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Prev Image</string>
    </property>
   </action>
   <action name="action_Save">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Save</string>
    </property>
   </action>
   <action name="action_Save_As">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Save As</string>
    </property>
@@ -193,6 +209,9 @@
   <action name="action_Auto_Save">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>&amp;Auto Save</string>
@@ -210,16 +229,25 @@
    <property name="checked">
     <bool>true</bool>
    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Save &amp;With Image</string>
    </property>
   </action>
   <action name="action_Close">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Close</string>
    </property>
   </action>
   <action name="action_Delete_File">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Delete File</string>
    </property>
@@ -235,46 +263,60 @@
    </property>
   </action>
   <action name="action_Create_Points">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Create &amp;Points</string>
    </property>
   </action>
   <action name="action_Create_Rectangle">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Create &amp;Rectangle</string>
    </property>
   </action>
   <action name="action_Create_Polygon">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Create &amp;Polygon</string>
    </property>
   </action>
-  <action name="action_Create_Line">
+  <action name="action_Create_Lines">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
-    <string>Create &amp;Line</string>
+    <string>Create &amp;Lines</string>
+   </property>
+   <property name="toolTip">
+    <string>Create Lines</string>
    </property>
   </action>
   <action name="action_Edit_Object">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Edit Object</string>
    </property>
   </action>
-  <action name="action_Edit_Label">
-   <property name="text">
-    <string>Edit &amp;Label</string>
-   </property>
-  </action>
-  <action name="action_Delete_Object">
-   <property name="text">
-    <string>&amp;Delete Object</string>
-   </property>
-  </action>
   <action name="action_Undo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Undo</string>
    </property>
   </action>
   <action name="action_Redo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Redo</string>
    </property>
@@ -286,6 +328,9 @@
    <property name="checked">
     <bool>true</bool>
    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Manual Mode</string>
    </property>
@@ -293,6 +338,9 @@
   <action name="action_SAM_Mode">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>&amp;SAM Mode</string>
@@ -337,6 +385,9 @@
    <property name="checked">
     <bool>true</bool>
    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Show Objects</string>
    </property>
@@ -345,16 +396,25 @@
    </property>
   </action>
   <action name="action_Zoom_In">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Zoom &amp;In</string>
    </property>
   </action>
   <action name="action_Zoom_Out">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Zoom Out</string>
    </property>
   </action>
   <action name="action_Original_Size">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Original Size</string>
    </property>
@@ -366,11 +426,17 @@
    <property name="checked">
     <bool>true</bool>
    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Fit Window</string>
    </property>
   </action>
   <action name="action_Finish_Prompt">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Finish Prompt</string>
    </property>

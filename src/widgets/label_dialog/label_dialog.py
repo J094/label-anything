@@ -49,14 +49,14 @@ class LabelDialog(QDialog):
         painter.drawEllipse(4, 4, 10, 10)
         painter.end()
         
+        label_label_name = QLabel(label_name)
+        
         label_label_color = QLabel()
         label_label_color.setFixedWidth(20)
         label_label_color.setPixmap(pixmap)
-        
-        label_label_name = QLabel(label_name)
 
-        layout_h.addWidget(label_label_color)
         layout_h.addWidget(label_label_name)
+        layout_h.addWidget(label_label_color)
         
         item_widget.setLayout(layout_h)
         
@@ -68,13 +68,16 @@ class LabelDialog(QDialog):
         # parent() returns MainWindow
         for label_name in self.parent().label_names:
             self.add_item(label_name)
+    
+    def clear_text(self):
+        self.ui.lineEdit_Label_Name.clear()
+        self.ui.lineEdit_Group_ID.clear()
         
     def slot_ok(self):
         self.accept()
     
     def slot_cancel(self):
-        self.ui.lineEdit_Label_Name.clear()
-        self.ui.lineEdit_Group_ID.clear()
+        self.clear_text()
         self.reject()
 
 
