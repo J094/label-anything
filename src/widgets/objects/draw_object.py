@@ -12,12 +12,11 @@ from PySide6.QtGui import QColor
 
 class DrawObject(object):
     
-    # 4 types to draw
+    # 3 types to draw
     class DrawObjectType(Enum):
         POINTS = 0
         RECTANGLE = 1
         POLYGON = 2
-        LINES = 3
     
     default_line_color = QColor(0, 255, 0, 128)
     default_fill_color = QColor(0, 255, 0, 128)
@@ -52,9 +51,13 @@ class DrawObject(object):
     
     def close(self):
         self.closed = True
+        self.point_size_base = 2 * DrawObject.default_point_size_base
+        self.point_color = DrawObject.default_selected_point_color
     
     def unclose(self):
         self.closed = False
+        self.point_size_base = DrawObject.default_point_size_base
+        self.point_color = DrawObject.default_point_color
     
     def update_point_size(self):
         self.point_size = max(3.0, self.point_size_base / DrawObject.scale_factor)

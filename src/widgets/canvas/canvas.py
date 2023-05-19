@@ -12,7 +12,6 @@ from src.widgets.objects.draw_object import DrawObject
 from src.widgets.objects.draw_points import DrawPoints
 from src.widgets.objects.draw_rectangle import DrawRectangle
 from src.widgets.objects.draw_polygon import DrawPolygon
-from src.widgets.objects.draw_lines import DrawLines
 from src.widgets.objects.prompt_object import PromptObject
 
 import time
@@ -177,8 +176,6 @@ class CanvasScene(QGraphicsScene):
                 canvas_object = DrawRectangle(canvas_scene=self)
             elif object_type == "polygon":
                 canvas_object = DrawPolygon(canvas_scene=self)
-            elif object_type == "lines":
-                canvas_object = DrawLines(canvas_scene=self)
             canvas_object.label_name = object["label_name"]
             canvas_object.group_id = object["group_id"]
             for point in object["points"]:
@@ -240,6 +237,7 @@ class CanvasScene(QGraphicsScene):
                             self.draw_object.update_items()
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
                                 self.draw_object.close()
+                                self.draw_object.update_items()
                                 self.finish_draw_manual()
                         elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
                             self.draw_object = DrawRectangle(canvas_scene=self)
@@ -249,16 +247,13 @@ class CanvasScene(QGraphicsScene):
                             self.draw_object = DrawPolygon(canvas_scene=self)
                             self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
-                        elif self.draw_object_type == DrawObject.DrawObjectType.LINES:
-                            self.draw_object = DrawLines(canvas_scene=self)
-                            self.draw_object.add_point(self.point_to_add)
-                            self.draw_object.update_items()
                     else:
                         if self.draw_object_type == DrawObject.DrawObjectType.POINTS:
                             self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
                                 self.draw_object.close()
+                                self.draw_object.update_items()
                                 self.finish_draw_manual()
                         elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
                             self.draw_object.add_point(self.point_to_add)
@@ -270,14 +265,14 @@ class CanvasScene(QGraphicsScene):
                             self.draw_object.update_items()
                             if self.draw_object.closed:
                                 self.finish_draw_manual()
-                        elif self.draw_object_type == DrawObject.DrawObjectType.LINES:
-                            self.draw_object.add_point(self.point_to_add)
-                            self.draw_object.update_items()
-                            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                                self.draw_object.close()
-                                self.finish_draw_manual()
                 elif self.label_mode == Canvas.LabelMode.SAM:
-                    pass
+                    if self.prompt_object is None:
+                        if self.prompt_object_type == PromptObject.PromptObjectType.SAM:
+                            pass
+                        elif self.prompt_object_type == PromptObject.PromptObjectType.YOLO:
+                            pass
+                    else:
+                        pass
                 elif self.label_mode == Canvas.LabelMode.YOLO:
                     pass
             elif self.status_mode == Canvas.StatusMode.EDIT:
@@ -320,14 +315,11 @@ class CanvasScene(QGraphicsScene):
                     distance = utils_qt.distance_points(point_1, point_2)
                     if distance <= 10:
                         self.point_to_add = point_1
-                        self.draw_object.point_color = DrawObject.default_selected_point_color
                         self.draw_object.point_size_base = 2 * DrawObject.default_point_size_base
+                        self.draw_object.point_color = DrawObject.default_selected_point_color
                     else:
                         self.draw_object.point_color = DrawObject.default_point_color
                         self.draw_object.point_size_base = DrawObject.default_point_size_base
-                self.draw_object.last_point = self.point_to_add
-                self.draw_object.update_items()
-            elif self.draw_object_type == DrawObject.DrawObjectType.LINES:
                 self.draw_object.last_point = self.point_to_add
                 self.draw_object.update_items()
 
@@ -353,7 +345,7 @@ class CanvasScene(QGraphicsScene):
             else:
                 self.guide_line_y.setLine(self.point_to_add.x(), 0, 
                                           self.point_to_add.x(), self.height())
-        else: # POINTS, POLYGON, LINES
+        else: # POINTS, POLYGON
             if self.guide_line_x is not None:
                 self.removeItem(self.guide_line_x)
                 self.guide_line_x = None

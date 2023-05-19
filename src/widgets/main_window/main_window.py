@@ -74,7 +74,6 @@ class MainWindow(QMainWindow):
             self.ui.action_Create_Points,
             self.ui.action_Create_Rectangle,
             self.ui.action_Create_Polygon,
-            self.ui.action_Create_Lines,
             self.ui.action_Edit_Object,
             self.ui.action_SAM_Mode,
         ]
@@ -106,7 +105,6 @@ class MainWindow(QMainWindow):
         self.ui.action_Create_Points.triggered.connect(self.slot_create_points)
         self.ui.action_Create_Rectangle.triggered.connect(self.slot_create_rectangle)
         self.ui.action_Create_Polygon.triggered.connect(self.slot_create_polygon)
-        self.ui.action_Create_Lines.triggered.connect(self.slot_create_lines)
         self.ui.action_Edit_Object.triggered.connect(self.slot_edit_object)
         self.ui.action_Manual_Mode.triggered.connect(self.slot_manual_mode)
         self.ui.action_SAM_Mode.triggered.connect(self.slot_sam_mode)
@@ -171,8 +169,6 @@ class MainWindow(QMainWindow):
                 object_type = "rectangle"
             elif draw_object_type == DrawObject.DrawObjectType.POLYGON:
                 object_type = "polygon"
-            elif draw_object_type == DrawObject.DrawObjectType.LINES:
-                object_type = "lines"
             label_name = canvas_object.label_name
             group_id = canvas_object.group_id
             points = []
@@ -218,8 +214,9 @@ class MainWindow(QMainWindow):
         r, g, b = LABEL_COLORMAP[(self.label_names.index(canvas_object.label_name) + 1) %
                                   len(LABEL_COLORMAP)]
         self.color_map[canvas_object.label_name] = [r, g, b]
-        canvas_object.line_color = QColor(r, g, b)
-        canvas_object.point_color = QColor(r, g, b)
+        canvas_object.line_color = QColor(r, g, b, 255)
+        canvas_object.point_color = QColor(r, g, b, 255)
+        canvas_object.fill_color = QColor(r, g, b, 128)
         canvas_object.point_size_base = DrawObject.default_point_size_base
         canvas_object.update_items()
         
@@ -283,7 +280,7 @@ class MainWindow(QMainWindow):
                 self.output_path = image_base + ".json"
                 print("Choose Image File:", self.image_path)
                 self.load_file()
-        self.setup_action_startup(True)
+                self.setup_action_startup(True)
     
     def slot_open_dir(self):
         path = os.path.dirname(self.image_dir) if self.image_dir else "."
@@ -296,7 +293,7 @@ class MainWindow(QMainWindow):
             self.image_dir = image_dir
             print("Choose Image Directory:", self.image_dir)
             self.load_dir()
-        self.setup_action_startup(True)
+            self.setup_action_startup(True)
             
     def slot_change_output_dir(self):
         path = os.path.dirname(self.output_dir) if self.output_dir else "."
@@ -368,8 +365,6 @@ class MainWindow(QMainWindow):
         self.ui.action_Create_Rectangle.setChecked(False)
         self.ui.action_Create_Polygon.setEnabled(True)
         self.ui.action_Create_Polygon.setChecked(False)
-        self.ui.action_Create_Lines.setEnabled(True)
-        self.ui.action_Create_Lines.setChecked(False)
         self.ui.action_Edit_Object.setEnabled(True)
         self.ui.action_Edit_Object.setChecked(False)
         self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
@@ -382,8 +377,6 @@ class MainWindow(QMainWindow):
         self.ui.action_Create_Rectangle.setChecked(True)
         self.ui.action_Create_Polygon.setEnabled(True)
         self.ui.action_Create_Polygon.setChecked(False)
-        self.ui.action_Create_Lines.setEnabled(True)
-        self.ui.action_Create_Lines.setChecked(False)
         self.ui.action_Edit_Object.setEnabled(True)
         self.ui.action_Edit_Object.setChecked(False)
         self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
@@ -396,26 +389,10 @@ class MainWindow(QMainWindow):
         self.ui.action_Create_Rectangle.setChecked(False)
         self.ui.action_Create_Polygon.setEnabled(False)
         self.ui.action_Create_Polygon.setChecked(True)
-        self.ui.action_Create_Lines.setEnabled(True)
-        self.ui.action_Create_Lines.setChecked(False)
         self.ui.action_Edit_Object.setEnabled(True)
         self.ui.action_Edit_Object.setChecked(False)
         self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
                                   object_type=DrawObject.DrawObjectType.POLYGON)
-        
-    def slot_create_lines(self):
-        self.ui.action_Create_Points.setEnabled(True)
-        self.ui.action_Create_Points.setChecked(False)
-        self.ui.action_Create_Rectangle.setEnabled(True)
-        self.ui.action_Create_Rectangle.setChecked(False)
-        self.ui.action_Create_Polygon.setEnabled(True)
-        self.ui.action_Create_Polygon.setChecked(False)
-        self.ui.action_Create_Lines.setEnabled(False)
-        self.ui.action_Create_Lines.setChecked(True)
-        self.ui.action_Edit_Object.setEnabled(True)
-        self.ui.action_Edit_Object.setChecked(False)
-        self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
-                                  object_type=DrawObject.DrawObjectType.LINES)
         
     def slot_edit_object(self):
         self.ui.action_Create_Points.setEnabled(True)
@@ -424,8 +401,6 @@ class MainWindow(QMainWindow):
         self.ui.action_Create_Rectangle.setChecked(False)
         self.ui.action_Create_Polygon.setEnabled(True)
         self.ui.action_Create_Polygon.setChecked(False)
-        self.ui.action_Create_Lines.setEnabled(True)
-        self.ui.action_Create_Lines.setChecked(False)
         self.ui.action_Edit_Object.setEnabled(False)
         self.ui.action_Edit_Object.setChecked(True)
         self.change_canvas_status(status_mode=Canvas.StatusMode.EDIT)
@@ -437,8 +412,6 @@ class MainWindow(QMainWindow):
         self.ui.action_Create_Rectangle.setChecked(False)
         self.ui.action_Create_Polygon.setEnabled(True)
         self.ui.action_Create_Polygon.setChecked(False)
-        self.ui.action_Create_Lines.setEnabled(True)
-        self.ui.action_Create_Lines.setChecked(False)
         self.ui.action_Edit_Object.setEnabled(True)
         self.ui.action_Edit_Object.setChecked(False)
         self.ui.action_Manual_Mode.setChecked(True)
@@ -454,8 +427,6 @@ class MainWindow(QMainWindow):
         self.ui.action_Create_Rectangle.setChecked(False)
         self.ui.action_Create_Polygon.setEnabled(True)
         self.ui.action_Create_Polygon.setChecked(False)
-        self.ui.action_Create_Lines.setEnabled(True)
-        self.ui.action_Create_Lines.setChecked(False)
         self.ui.action_Edit_Object.setEnabled(True)
         self.ui.action_Edit_Object.setChecked(False)
         self.ui.action_Manual_Mode.setChecked(False)

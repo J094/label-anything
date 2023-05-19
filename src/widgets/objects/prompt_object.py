@@ -25,9 +25,8 @@ class PromptObject(object):
     default_hpoint_fill_color = QColor(255, 255, 255, 255)
     scale_factor = 1.0
     
-    def __init__(self):
-        # QGraphicsPointItem
-        self.points = []
+    def __init__(self, canvas_scene=None):
+        self.canvas_scene = canvas_scene
         
     def clear(self):
         pass

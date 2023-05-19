@@ -23,6 +23,7 @@ class DrawRectangle(DrawObject):
         self.rect_item = None
         self.line_color = DrawObject.default_line_color
         self.point_color = DrawObject.default_point_color
+        self.fill_color = DrawObject.default_fill_color
         
     def add_point(self, point):
         if (self.points[0] is None
@@ -60,6 +61,9 @@ class DrawRectangle(DrawObject):
             self.points[1],
         ))
         self.rect_item.setPen(rect_pen)
+        if self.closed:
+            rect_brush = QBrush(self.fill_color)
+            self.rect_item.setBrush(rect_brush)
         
     def clear(self):
         for point_item in self.point_items:
