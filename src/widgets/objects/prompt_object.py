@@ -28,3 +28,6 @@ class PromptObject(object):
     def __init__(self):
         # QGraphicsPointItem
         self.points = []
+        
+    def clear(self):
+        pass

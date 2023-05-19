@@ -136,9 +136,9 @@ class CanvasScene(QGraphicsScene):
         self.guide_line_y = None
         self.canvas_objects = []
         self.draw_object = None
-        self.draw_object_type = DrawObject.DrawObjectType.POLYGON
+        self.draw_object_type = None
         self.prompt_object = None
-        self.prompt_object_type = PromptObject.PromptObjectType.SAM
+        self.prompt_object_type = None
         self.label_mode = Canvas.LabelMode.MANUAL
         self.status_mode = None
         self.point_to_add = None
@@ -167,7 +167,6 @@ class CanvasScene(QGraphicsScene):
         # Fit window
         self.views()[0].zoom_mode = Canvas.ZoomMode.FIT_WINDOW
         self.views()[0].zoom_fit_window()
-        self.status_mode = Canvas.StatusMode.CREATE
         
     def load_objects(self, objects):
         for object in objects:
@@ -190,19 +189,30 @@ class CanvasScene(QGraphicsScene):
             self.main_window.add_label(canvas_object)
     
     def reset_objects(self):
-        self.draw_object = None
-        self.prompt_object = None
+        if self.draw_object is not None:
+            self.draw_object.clear()
+            self.draw_object = None
+        if self.prompt_object is not None:
+            self.prompt_object.clear()
+            self.prompt_object = None
+        self.update()
         
     def reset_status(self):
         self.guide_line_x = None
         self.guide_line_y = None
         self.canvas_objects = []
-        self.reset_objects()
+        self.draw_object = None
+        self.prompt_object = None
         
     def finish_draw_manual(self):
         self.canvas_objects.append(self.draw_object)
-        self.main_window.new_label()
-        self.reset_objects()
+        ok = self.main_window.new_label()
+        if ok:
+            self.draw_object = None
+        else:
+            self.canvas_objects.pop()
+            self.draw_object.unclose()
+        self.update()
         # print(self.canvas_objects)
     
     def finish_draw_sam(self):
@@ -229,7 +239,7 @@ class CanvasScene(QGraphicsScene):
                             self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                                self.draw_object.closed = True
+                                self.draw_object.close()
                                 self.finish_draw_manual()
                         elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
                             self.draw_object = DrawRectangle(canvas_scene=self)
@@ -248,7 +258,7 @@ class CanvasScene(QGraphicsScene):
                             self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                                self.draw_object.closed = True
+                                self.draw_object.close()
                                 self.finish_draw_manual()
                         elif self.draw_object_type == DrawObject.DrawObjectType.RECTANGLE:
                             self.draw_object.add_point(self.point_to_add)
@@ -264,7 +274,7 @@ class CanvasScene(QGraphicsScene):
                             self.draw_object.add_point(self.point_to_add)
                             self.draw_object.update_items()
                             if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                                self.draw_object.closed = True
+                                self.draw_object.close()
                                 self.finish_draw_manual()
                 elif self.label_mode == Canvas.LabelMode.SAM:
                     pass

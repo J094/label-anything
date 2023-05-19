@@ -37,13 +37,8 @@ class DrawRectangle(DrawObject):
             self.canvas_scene.addItem(rect_item)
             self.rect_item = rect_item
         else:
-            self.closed = True
+            self.close()
             self.points[1] = point
-            
-    def get_rect(self, point_1, point_2):
-        x_1, y_1 = point_1.x(), point_1.y()
-        x_2, y_2 = point_2.x(), point_2.y()
-        return QRectF(x_1, y_1, x_2 - x_1, y_2 - y_1)
     
     def update_items(self):
         self.update_point_size()
@@ -65,3 +60,15 @@ class DrawRectangle(DrawObject):
             self.points[1],
         ))
         self.rect_item.setPen(rect_pen)
+        
+    def clear(self):
+        for point_item in self.point_items:
+            if point_item in self.canvas_scene.items():
+                self.canvas_scene.removeItem(point_item)
+        if self.rect_item in self.canvas_scene.items():
+            self.canvas_scene.removeItem(self.rect_item)
+        
+    def get_rect(self, point_1, point_2):
+        x_1, y_1 = point_1.x(), point_1.y()
+        x_2, y_2 = point_2.x(), point_2.y()
+        return QRectF(x_1, y_1, x_2 - x_1, y_2 - y_1)

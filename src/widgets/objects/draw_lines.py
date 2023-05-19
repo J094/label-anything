@@ -33,6 +33,7 @@ class DrawLines(DrawObject):
         self.point_color = DrawObject.default_point_color
         
     def add_point(self, point):
+        # Close this polygon
         point_item = QGraphicsEllipseItem()
         self.canvas_scene.addItem(point_item)
         self.points.append(point)
@@ -72,20 +73,37 @@ class DrawLines(DrawObject):
             self.line_items[i].setLine(point_1.x(), point_1.y(),
                                     point_2.x(), point_2.y())
             self.line_items[i].setPen(line_pen)
-        if self.closed:
-            self.canvas_scene.removeItem(self.last_point_item)
-            self.last_point_item = None
-            self.canvas_scene.removeItem(self.last_line_item)
-            self.last_line_item = None
+        self.last_point_item.setRect(self.last_point.x()-self.point_size/2,
+                                    self.last_point.y()-self.point_size/2,
+                                    self.point_size,
+                                    self.point_size)
+        self.last_point_item.setPen(point_pen)
+        self.last_point_item.setBrush(point_brush)
+        last_point_1 = self.points[-1]
+        last_point_2 = self.last_point
+        if (last_point_1.x() == last_point_2.x()
+            and last_point_1.y() == last_point_2.y()):
+            self.last_line_item.setVisible(False)
         else:
-            self.last_point_item.setRect(self.last_point.x()-self.point_size/2,
-                                        self.last_point.y()-self.point_size/2,
-                                        self.point_size,
-                                        self.point_size)
-            self.last_point_item.setPen(point_pen)
-            self.last_point_item.setBrush(point_brush)
-            last_point_1 = self.points[-1]
-            last_point_2 = self.last_point
             self.last_line_item.setLine(last_point_1.x(), last_point_1.y(),
                                         last_point_2.x(), last_point_2.y())
-            self.last_line_item.setPen(line_pen)
+            self.last_line_item.setVisible(True)
+        self.last_line_item.setPen(line_pen)
+            
+    def unclose(self):
+        self.points.pop()
+        self.canvas_scene.removeItem(self.point_items.pop())
+        self.canvas_scene.removeItem(self.line_items.pop())
+        return super().unclose()
+        
+    def clear(self):
+        for point_item in self.point_items:
+            if point_item in self.canvas_scene.items():
+                self.canvas_scene.removeItem(point_item)
+        for line_item in self.line_items:
+            if line_item in self.canvas_scene.items():
+                self.canvas_scene.removeItem(line_item)
+        if self.last_point_item in self.canvas_scene.items():
+            self.canvas_scene.removeItem(self.last_point_item)
+        if self.last_line_item in self.canvas_scene.items():
+            self.canvas_scene.removeItem(self.last_line_item)

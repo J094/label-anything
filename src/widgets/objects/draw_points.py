@@ -26,9 +26,6 @@ class DrawPoints(DrawObject):
         self.canvas_scene.addItem(point_item)
         self.points.append(point)
         self.point_items.append(point_item)
-
-    def pop_point(self):
-        pass
     
     def update_items(self):
         self.update_point_size()
@@ -43,3 +40,13 @@ class DrawPoints(DrawObject):
                                         self.point_size)
             self.point_items[i].setPen(point_pen)
             self.point_items[i].setBrush(point_brush)
+    
+    def unclose(self):
+        self.points.pop()
+        self.point_items.pop()
+        return super().unclose()
+    
+    def clear(self):
+        for point_item in self.point_items:
+            if point_item in self.canvas_scene.items():
+                self.canvas_scene.removeItem(point_item)

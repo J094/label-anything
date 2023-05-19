@@ -65,9 +65,9 @@
     <addaction name="action_Create_Polygon"/>
     <addaction name="action_Create_Lines"/>
     <addaction name="separator"/>
-    <addaction name="action_Finish_Prompt"/>
-    <addaction name="separator"/>
     <addaction name="action_Edit_Object"/>
+    <addaction name="separator"/>
+    <addaction name="action_Finish_Prompt"/>
     <addaction name="separator"/>
     <addaction name="action_Undo"/>
     <addaction name="action_Redo"/>
@@ -154,9 +154,9 @@
    <addaction name="action_Create_Polygon"/>
    <addaction name="action_Create_Lines"/>
    <addaction name="separator"/>
-   <addaction name="action_Finish_Prompt"/>
-   <addaction name="separator"/>
    <addaction name="action_Edit_Object"/>
+   <addaction name="separator"/>
+   <addaction name="action_Finish_Prompt"/>
    <addaction name="separator"/>
    <addaction name="action_Manual_Mode"/>
    <addaction name="action_SAM_Mode"/>
@@ -263,6 +263,9 @@
    </property>
   </action>
   <action name="action_Create_Points">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -271,6 +274,9 @@
    </property>
   </action>
   <action name="action_Create_Rectangle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -279,6 +285,9 @@
    </property>
   </action>
   <action name="action_Create_Polygon">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -287,6 +296,9 @@
    </property>
   </action>
   <action name="action_Create_Lines">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -298,6 +310,9 @@
    </property>
   </action>
   <action name="action_Edit_Object">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>

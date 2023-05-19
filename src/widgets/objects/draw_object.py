@@ -47,6 +47,15 @@ class DrawObject(object):
     def update_items(self):
         pass
     
+    def clear(self):
+        pass
+    
+    def close(self):
+        self.closed = True
+    
+    def unclose(self):
+        self.closed = False
+    
     def update_point_size(self):
         self.point_size = max(3.0, self.point_size_base / DrawObject.scale_factor)
         # print("point size:", self.point_size)

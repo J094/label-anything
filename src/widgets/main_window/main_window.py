@@ -57,24 +57,29 @@ class MainWindow(QMainWindow):
             self.ui.action_Prev_Image,
             self.ui.action_Save,
             self.ui.action_Save_As,
-            self.ui.action_Auto_Save,
-            self.ui.action_Save_With_Image,
             self.ui.action_Close,
             self.ui.action_Delete_File,
+            self.ui.action_Zoom_In,
+            self.ui.action_Zoom_Out,
+            self.ui.action_Original_Size,
+        ]
+        self.action_startup_checked = [
+            self.ui.action_Save_With_Image,
+            self.ui.action_Manual_Mode,
+            self.ui.action_Fit_Window,
+            self.ui.action_Show_Objects,
+        ]
+        self.action_startup_unchecked = [
+            self.ui.action_Auto_Save,
             self.ui.action_Create_Points,
             self.ui.action_Create_Rectangle,
             self.ui.action_Create_Polygon,
             self.ui.action_Create_Lines,
             self.ui.action_Edit_Object,
-            self.ui.action_Manual_Mode,
             self.ui.action_SAM_Mode,
-            self.ui.action_Show_Objects,
-            self.ui.action_Zoom_In,
-            self.ui.action_Zoom_Out,
-            self.ui.action_Original_Size,
-            self.ui.action_Fit_Window,
         ]
 
+        self.setup_action_startup(False)
         self.setup_slot()
         
     def setup_ui(self):
@@ -98,14 +103,27 @@ class MainWindow(QMainWindow):
         self.ui.action_Prev_Image.triggered.connect(self.slot_prev_image)
         self.ui.action_Save.triggered.connect(self.slot_save)
         self.ui.action_Close.triggered.connect(self.slot_close)
-        self.ui.action_Fit_Window.triggered.connect(self.slot_fit_window)
+        self.ui.action_Create_Points.triggered.connect(self.slot_create_points)
+        self.ui.action_Create_Rectangle.triggered.connect(self.slot_create_rectangle)
+        self.ui.action_Create_Polygon.triggered.connect(self.slot_create_polygon)
+        self.ui.action_Create_Lines.triggered.connect(self.slot_create_lines)
+        self.ui.action_Edit_Object.triggered.connect(self.slot_edit_object)
+        self.ui.action_Manual_Mode.triggered.connect(self.slot_manual_mode)
+        self.ui.action_SAM_Mode.triggered.connect(self.slot_sam_mode)
         self.ui.action_Zoom_In.triggered.connect(self.slot_zoom_in)
         self.ui.action_Zoom_Out.triggered.connect(self.slot_zoom_out)
         self.ui.action_Original_Size.triggered.connect(self.slot_original_size)
+        self.ui.action_Fit_Window.triggered.connect(self.slot_fit_window)
         
-    def setup_action_startup(self):
+    def setup_action_startup(self, status):
         for action in self.action_startup:
-            action.setEnabled(True)
+            action.setEnabled(status)
+        for action in self.action_startup_checked:
+            action.setEnabled(status)
+            action.setChecked(True)
+        for action in self.action_startup_unchecked:
+            action.setEnabled(status)
+            action.setChecked(False)
         
     def reset_status(self):
         pass
@@ -212,12 +230,15 @@ class MainWindow(QMainWindow):
         self.update_canvas_object(canvas_object)
             
     def new_label(self):
-        self.dialog_label_dialog.exec()
+        ok = self.dialog_label_dialog.exec()
+        if not ok:
+            return False
         label_name = self.dialog_label_dialog.ui.lineEdit_Label_Name.text()
         group_id = self.dialog_label_dialog.ui.lineEdit_Group_ID.text()
 
         if label_name not in self.label_names:
             self.label_names.append(label_name)
+
         self.canvas_objects = self.graphicsScene_canvas_scene.canvas_objects
         canvas_object = self.canvas_objects[-1]
         canvas_object.label_name = label_name
@@ -226,6 +247,19 @@ class MainWindow(QMainWindow):
         self.update_canvas_object(canvas_object)
         self.widget_label_list.update_list()
         self.dialog_label_dialog.update_list()
+        return True
+        
+    def change_canvas_status(self, status_mode=None, label_mode=None, object_type=None):
+        if status_mode is not None:
+            self.graphicsScene_canvas_scene.status_mode = status_mode
+            self.graphicsScene_canvas_scene.reset_objects()
+        if label_mode is not None:
+            self.graphicsScene_canvas_scene.label_mode = label_mode
+            self.graphicsScene_canvas_scene.reset_objects()
+        if object_type is not None:
+            self.graphicsScene_canvas_scene.draw_object_type = object_type
+            if self.graphicsScene_canvas_scene.label_mode == Canvas.LabelMode.MANUAL:
+                self.graphicsScene_canvas_scene.reset_objects()
         
     def slot_open(self):
         path = os.path.dirname(self.image_path) if self.image_path else "."
@@ -249,7 +283,7 @@ class MainWindow(QMainWindow):
                 self.output_path = image_base + ".json"
                 print("Choose Image File:", self.image_path)
                 self.load_file()
-        self.setup_action_startup()
+        self.setup_action_startup(True)
     
     def slot_open_dir(self):
         path = os.path.dirname(self.image_dir) if self.image_dir else "."
@@ -262,7 +296,7 @@ class MainWindow(QMainWindow):
             self.image_dir = image_dir
             print("Choose Image Directory:", self.image_dir)
             self.load_dir()
-        self.setup_action_startup()
+        self.setup_action_startup(True)
             
     def slot_change_output_dir(self):
         path = os.path.dirname(self.output_dir) if self.output_dir else "."
@@ -301,8 +335,7 @@ class MainWindow(QMainWindow):
         self.load_file()
     
     def slot_close(self):
-        for action in self.action_startup:
-            action.setEnabled(False)
+        self.setup_action_startup(False)
         
     def slot_fit_window(self):
         checked = self.ui.action_Fit_Window.isChecked()
@@ -327,6 +360,109 @@ class MainWindow(QMainWindow):
         self.ui.action_Fit_Window.setChecked(False)
         self.graphicsView_canvas.zoom_mode = Canvas.ZoomMode.MANUAL
         self.graphicsView_canvas.zoom_original()
+        
+    def slot_create_points(self):
+        self.ui.action_Create_Points.setEnabled(False)
+        self.ui.action_Create_Points.setChecked(True)
+        self.ui.action_Create_Rectangle.setEnabled(True)
+        self.ui.action_Create_Rectangle.setChecked(False)
+        self.ui.action_Create_Polygon.setEnabled(True)
+        self.ui.action_Create_Polygon.setChecked(False)
+        self.ui.action_Create_Lines.setEnabled(True)
+        self.ui.action_Create_Lines.setChecked(False)
+        self.ui.action_Edit_Object.setEnabled(True)
+        self.ui.action_Edit_Object.setChecked(False)
+        self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
+                                  object_type=DrawObject.DrawObjectType.POINTS)
+        
+    def slot_create_rectangle(self):
+        self.ui.action_Create_Points.setEnabled(True)
+        self.ui.action_Create_Points.setChecked(False)
+        self.ui.action_Create_Rectangle.setEnabled(False)
+        self.ui.action_Create_Rectangle.setChecked(True)
+        self.ui.action_Create_Polygon.setEnabled(True)
+        self.ui.action_Create_Polygon.setChecked(False)
+        self.ui.action_Create_Lines.setEnabled(True)
+        self.ui.action_Create_Lines.setChecked(False)
+        self.ui.action_Edit_Object.setEnabled(True)
+        self.ui.action_Edit_Object.setChecked(False)
+        self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
+                                  object_type=DrawObject.DrawObjectType.RECTANGLE)
+        
+    def slot_create_polygon(self):
+        self.ui.action_Create_Points.setEnabled(True)
+        self.ui.action_Create_Points.setChecked(False)
+        self.ui.action_Create_Rectangle.setEnabled(True)
+        self.ui.action_Create_Rectangle.setChecked(False)
+        self.ui.action_Create_Polygon.setEnabled(False)
+        self.ui.action_Create_Polygon.setChecked(True)
+        self.ui.action_Create_Lines.setEnabled(True)
+        self.ui.action_Create_Lines.setChecked(False)
+        self.ui.action_Edit_Object.setEnabled(True)
+        self.ui.action_Edit_Object.setChecked(False)
+        self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
+                                  object_type=DrawObject.DrawObjectType.POLYGON)
+        
+    def slot_create_lines(self):
+        self.ui.action_Create_Points.setEnabled(True)
+        self.ui.action_Create_Points.setChecked(False)
+        self.ui.action_Create_Rectangle.setEnabled(True)
+        self.ui.action_Create_Rectangle.setChecked(False)
+        self.ui.action_Create_Polygon.setEnabled(True)
+        self.ui.action_Create_Polygon.setChecked(False)
+        self.ui.action_Create_Lines.setEnabled(False)
+        self.ui.action_Create_Lines.setChecked(True)
+        self.ui.action_Edit_Object.setEnabled(True)
+        self.ui.action_Edit_Object.setChecked(False)
+        self.change_canvas_status(status_mode=Canvas.StatusMode.CREATE, 
+                                  object_type=DrawObject.DrawObjectType.LINES)
+        
+    def slot_edit_object(self):
+        self.ui.action_Create_Points.setEnabled(True)
+        self.ui.action_Create_Points.setChecked(False)
+        self.ui.action_Create_Rectangle.setEnabled(True)
+        self.ui.action_Create_Rectangle.setChecked(False)
+        self.ui.action_Create_Polygon.setEnabled(True)
+        self.ui.action_Create_Polygon.setChecked(False)
+        self.ui.action_Create_Lines.setEnabled(True)
+        self.ui.action_Create_Lines.setChecked(False)
+        self.ui.action_Edit_Object.setEnabled(False)
+        self.ui.action_Edit_Object.setChecked(True)
+        self.change_canvas_status(status_mode=Canvas.StatusMode.EDIT)
+        
+    def slot_manual_mode(self):
+        self.ui.action_Create_Points.setEnabled(True)
+        self.ui.action_Create_Points.setChecked(False)
+        self.ui.action_Create_Rectangle.setEnabled(True)
+        self.ui.action_Create_Rectangle.setChecked(False)
+        self.ui.action_Create_Polygon.setEnabled(True)
+        self.ui.action_Create_Polygon.setChecked(False)
+        self.ui.action_Create_Lines.setEnabled(True)
+        self.ui.action_Create_Lines.setChecked(False)
+        self.ui.action_Edit_Object.setEnabled(True)
+        self.ui.action_Edit_Object.setChecked(False)
+        self.ui.action_Manual_Mode.setChecked(True)
+        self.ui.action_Manual_Mode.setEnabled(False)
+        self.ui.action_SAM_Mode.setChecked(False)
+        self.ui.action_SAM_Mode.setEnabled(True)
+        self.change_canvas_status(label_mode=Canvas.LabelMode.MANUAL)
+        
+    def slot_sam_mode(self):
+        self.ui.action_Create_Points.setEnabled(True)
+        self.ui.action_Create_Points.setChecked(False)
+        self.ui.action_Create_Rectangle.setEnabled(True)
+        self.ui.action_Create_Rectangle.setChecked(False)
+        self.ui.action_Create_Polygon.setEnabled(True)
+        self.ui.action_Create_Polygon.setChecked(False)
+        self.ui.action_Create_Lines.setEnabled(True)
+        self.ui.action_Create_Lines.setChecked(False)
+        self.ui.action_Edit_Object.setEnabled(True)
+        self.ui.action_Edit_Object.setChecked(False)
+        self.ui.action_Manual_Mode.setChecked(False)
+        self.ui.action_Manual_Mode.setEnabled(True)
+        self.ui.action_SAM_Mode.setChecked(True)
+        self.ui.action_SAM_Mode.setEnabled(False)
+        self.change_canvas_status(label_mode=Canvas.LabelMode.SAM)
 
 
 if __name__ == "__main__":
